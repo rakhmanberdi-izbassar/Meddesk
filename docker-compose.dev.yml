@@ -1,0 +1,5 @@
+# Optional host database access for native Go/Vite development, loopback only.
+services:
+  postgres:
+    ports:
+      - 127.0.0.1:5432:5432

@@ -1,0 +1,17 @@
+.idea/
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+*.log
+*.test
+bin/
+.tools/
+.DS_Store
+uploads/
+backend/var/
+playwright-report/
+test-results/
+backups/

@@ -1,0 +1,36 @@
+import { useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
+import { useLocale } from '../lib/locale'
+import { useErrorMessage } from '../lib/notifications'
+import { queryString } from '../lib/api'
+import { auditFiltersSchema, auditPageSchema, formatTimestamp, validReportingWindow, type ReportingWindow } from '../lib/analytics'
+import { auditActionLabel, auditEntityLabel, auditEntityLink } from '../lib/audit-labels'
+import { Button } from '../components/ui/button'
+import { FormField } from '../components/forms/FormField'
+import { Pagination } from '../components/forms/Pagination'
+import { ReportingFilters } from '../components/ReportingFilters'
+
+type Filters = ReportingWindow & { actor_id: string; action: string; entity_type: string; entity_id: string }
+const emptyFilters: Filters = { from: '', to: '', timezone: '', actor_id: '', action: '', entity_type: '', entity_id: '' }
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export function Audit() {
+  const { user, api } = useAuth()
+  const { t, locale } = useLocale()
+  const message = useErrorMessage()
+  const [draft, setDraft] = useState(emptyFilters)
+  const [applied, setApplied] = useState<Partial<Filters>>({})
+  const [page, setPage] = useState(0)
+  const [invalid, setInvalid] = useState(false)
+  const [idInvalid, setIDInvalid] = useState(false)
+  const [resetGeneration, setResetGeneration] = useState(0)
+  const touched = useRef(false)
+  const filters = useQuery({ queryKey: ['admin', 'audit', 'filters', user?.id], queryFn: ({ signal }) => api('/admin/audit/filters', auditFiltersSchema, { signal }) })
+  const query = useQuery({ queryKey: ['admin', 'audit', 'page', user?.id, applied, page, resetGeneration], queryFn: ({ signal }) => api(`/admin/audit?${queryString({ ...applied, limit: 20, offset: page * 20 })}`, auditPageSchema, { signal }) })
+  useEffect(() => { if (query.data && !touched.current) { const { from, to, timezone } = query.data.period; setDraft({ ...emptyFilters, from, to, timezone }) } }, [query.data])
+  const update = (next: Filters) => { touched.current = true; setDraft(next) }
+  const apply = () => { const badWindow = !validReportingWindow(draft), badID = !!draft.entity_id.trim() && !UUID.test(draft.entity_id.trim()); setInvalid(badWindow); setIDInvalid(badID); if (badWindow || badID) return; setPage(0); setApplied({ ...draft, entity_id: draft.entity_id.trim(), timezone: draft.timezone.trim() }) }
+  const reset = () => { touched.current = false; setDraft(emptyFilters); setInvalid(false); setIDInvalid(false); setPage(0); setApplied({}); setResetGeneration(value => value + 1) }
+  return <><div className="page-heading"><div><h1>{t.audit}</h1><p>{t.auditDescription}</p></div><Button variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}>{t.refresh}</Button></div><form className="content-card reporting-filter-form" onSubmit={event => { event.preventDefault(); apply() }} noValidate><div className="reporting-filter-grid"><ReportingFilters value={draft} onChange={value => update({ ...draft, ...value })} invalid={invalid} prefix="audit" /><FormField id="audit-actor" label={t.auditActor}><select id="audit-actor" value={draft.actor_id} onChange={event => update({ ...draft, actor_id: event.target.value })} disabled={filters.isPending || filters.isError}><option value="">{t.allActors}</option>{filters.data?.actors.map(item => <option key={item.id} value={item.id}>{item.display_name}</option>)}</select></FormField><FormField id="audit-action" label={t.auditAction}><select id="audit-action" value={draft.action} onChange={event => update({ ...draft, action: event.target.value })} disabled={filters.isPending || filters.isError}><option value="">{t.allActions}</option>{filters.data?.actions.map(item => <option key={item} value={item}>{auditActionLabel(item, locale)}</option>)}</select></FormField><FormField id="audit-entity" label={t.auditEntity}><select id="audit-entity" value={draft.entity_type} onChange={event => update({ ...draft, entity_type: event.target.value })} disabled={filters.isPending || filters.isError}><option value="">{t.allEntities}</option>{filters.data?.entity_types.map(item => <option key={item} value={item}>{auditEntityLabel(item, locale)}</option>)}</select></FormField><FormField id="audit-id" label={t.auditEntityID} hint={t.auditIDHint} error={idInvalid ? t.auditIDInvalid : undefined}><input id="audit-id" value={draft.entity_id} onChange={event => update({ ...draft, entity_id: event.target.value })} maxLength={36} aria-invalid={idInvalid} aria-describedby={idInvalid ? 'audit-id-hint audit-id-error' : 'audit-id-hint'} /></FormField></div><p className="field-hint">{t.reportingInclusive}</p>{invalid && <p className="inline-error" role="alert">{t.reportingValidation}</p>}{filters.isError && <p className="inline-error" role="alert">{message(filters.error)} <Button type="button" variant="ghost" size="sm" onClick={() => void filters.refetch()}>{t.retry}</Button></p>}<div className="form-actions"><Button type="button" variant="outline" onClick={reset}>{t.resetFilters}</Button><Button type="submit" disabled={query.isFetching || !draft.from || !draft.to}>{t.applyFilters}</Button></div></form>{query.isPending ? <p role="status" className="table-state">{t.loading}</p> : query.isError ? <div className="content-card table-state" role="alert"><p>{message(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()}>{t.retry}</Button></div> : query.data && <><p className="reporting-period">{query.data.period.from} — {query.data.period.to} · {query.data.period.timezone}</p><section className="content-card audit-card">{query.data.items.length ? <div className="table-scroll"><table className="data-table audit-table"><caption className="sr-only">{t.audit}</caption><thead><tr><th scope="col">{t.date}</th><th scope="col">{t.auditActor}</th><th scope="col">{t.auditAction}</th><th scope="col">{t.auditEntity}</th><th scope="col">{t.auditDetails}</th></tr></thead><tbody>{query.data.items.map(item => { const link = auditEntityLink(item.entity_type, item.entity_id); return <tr key={item.id}><td><time dateTime={item.created_at}>{formatTimestamp(item.created_at, locale, query.data.period.timezone)}</time></td><td>{item.actor_name ?? t.systemActor}</td><td><strong>{auditActionLabel(item.action, locale)}</strong><code className="audit-code">{item.action}</code></td><td>{auditEntityLabel(item.entity_type, locale)}{item.entity_id && <code className="audit-code">{link ? <Link to={link}>{item.entity_id}</Link> : item.entity_id}</code>}</td><td>{Object.keys(item.metadata).length ? <details><summary>{t.auditDetails}</summary><dl className="audit-metadata">{Object.entries(item.metadata).map(([key, value]) => <div key={key}><dt>{key}</dt><dd><code>{typeof value === 'string' ? value : JSON.stringify(value)}</code></dd></div>)}</dl></details> : '—'}</td></tr> })}</tbody></table></div> : <p className="table-state">{t.noAudit}</p>}<Pagination page={page} total={query.data.total} limit={query.data.limit} busy={query.isFetching} onChange={setPage} /></section></>}</>
+}
