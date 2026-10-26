@@ -1,0 +1,55 @@
+worker_processes auto;
+pid /tmp/nginx.pid;
+error_log /dev/null;
+
+events { worker_connections 1024; }
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log off;
+    sendfile on;
+    server_tokens off;
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path /tmp/proxy_temp;
+    fastcgi_temp_path /tmp/fastcgi_temp;
+    uwsgi_temp_path /tmp/uwsgi_temp;
+    scgi_temp_path /tmp/scgi_temp;
+    proxy_connect_timeout 3s;
+    proxy_read_timeout 15s;
+    proxy_send_timeout 15s;
+
+    resolver ${DNS_RESOLVER} valid=10s;
+    server {
+        listen 8080;
+        root /usr/share/nginx/html;
+        index index.html;
+        set $api_origin http://${BACKEND_HOST}:${BACKEND_PORT};
+        client_max_body_size 2m;
+
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        add_header Referrer-Policy same-origin always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+        add_header Cache-Control no-store always;
+
+        location = /healthz {
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+        location /api/v1/media {
+            include /etc/meddesk/api.conf;
+            client_max_body_size 502m;
+            client_body_timeout 11m;
+            proxy_request_buffering off;
+            proxy_buffering off;
+            proxy_read_timeout 35m;
+            proxy_send_timeout 11m;
+            send_timeout 35m;
+        }
+        location /api/ { include /etc/meddesk/api.conf; }
+        location /assets/ { try_files $uri =404; }
+        location / { try_files $uri $uri/ /index.html; }
+    }
+}

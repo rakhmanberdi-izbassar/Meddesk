@@ -32,6 +32,8 @@ Development uses HTTP bound to loopback. A clinic production deployment requires
 
 For a PostgreSQL server signed by a private CA, set the backend's optional multiline `DATABASE_CA_CERT` to the public CA PEM. Full certificate/hostname verification remains required. See [Railway PostgreSQL TLS setup](docs/railway-deployment.md) for certificate checks, variable setup and readiness verification. This requires deploying the backend code that supports the variable; it does not publish the frontend automatically.
 
+For Railway frontend hosting, use the dedicated `frontend/Dockerfile.railway` with a private backend host/port. It serves React and proxies `/api` under one public origin. Follow the [frontend deployment steps](docs/railway-deployment.md#react-frontend-and-same-origin-api-gateway); the standard frontend image is designed to sit behind the local Compose gateway.
+
 ## Available behavior
 
 - Employees and IT engineers can sign in, access the dashboard/profile, and edit their own display name.
