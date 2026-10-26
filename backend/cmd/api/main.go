@@ -50,7 +50,8 @@ func run(healthcheck bool) int {
 	defer stop()
 	pool, err := postgres.NewWithRootCA(ctx, cfg.DatabaseURL, cfg.RequestTimeout, cfg.DatabaseCACert)
 	if err != nil {
-		logger.Error("database pool initialization failed")
+		// The postgres constructor returns only scrubbed, static errors; never log raw pgx errors or configuration.
+		logger.Error("database pool initialization failed", "error", err.Error())
 		return 1
 	}
 	defer pool.Close()

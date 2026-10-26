@@ -90,3 +90,15 @@ func TestDatabaseCARejectsMalformedBundlesAndWeakerTLS(t *testing.T) {
 		t.Fatal("existing development configuration changed")
 	}
 }
+
+func TestPoolParsingErrorsHideConnectionAndCertificateValues(t *testing.T) {
+	for _, databaseURL := range []string{
+		"postgres://user:secret-password@localhost/railway?sslmode=secret-mode",
+		"postgres://user:secret-password@localhost/railway?sslmode=verify-full&sslrootcert=/missing/secret-certificate.crt",
+	} {
+		_, err := poolConfig(databaseURL, time.Second, "secret-certificate-value")
+		if err == nil || err.Error() != "invalid PostgreSQL pool configuration" {
+			t.Fatal("pool parsing must return a static diagnostic without raw connection or certificate values")
+		}
+	}
+}
