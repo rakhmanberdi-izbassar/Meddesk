@@ -7,11 +7,13 @@ WHERE (NOT sqlc.arg(public_only)::boolean OR (a.is_published AND c.is_active))
  AND (sqlc.arg(tag)::text='' OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND lower(t.name)=lower(sqlc.arg(tag))))
  AND (sqlc.arg(search)::text='' OR a.search_simple @@ plainto_tsquery('simple',sqlc.arg(search))
  OR a.search_russian @@ plainto_tsquery('russian',sqlc.arg(search))
+ OR EXISTS(SELECT 1 FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND (tr.search_russian @@ plainto_tsquery('russian',sqlc.arg(search)) OR strpos(lower(tr.title || ' ' || tr.description || ' ' || tr.symptoms || ' ' || tr.solution_steps::text),lower(sqlc.arg(search)))>0))
  OR strpos(lower(a.title || ' ' || a.description || ' ' || a.symptoms || ' ' || a.solution_steps::text),lower(sqlc.arg(search)))>0
  OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND strpos(lower(t.name),lower(sqlc.arg(search)))>0)
  OR (length(sqlc.arg(search))>=3 AND word_similarity(lower(sqlc.arg(search)),lower(a.title))>=0.32))
 ORDER BY CASE WHEN sqlc.arg(search)::text='' THEN 0 ELSE
  (CASE WHEN strpos(lower(a.title),lower(sqlc.arg(search)))>0 THEN 20 ELSE 0 END)
+ + COALESCE((SELECT 5*ts_rank_cd(tr.search_russian,plainto_tsquery('russian',sqlc.arg(search))) + CASE WHEN strpos(lower(tr.title),lower(sqlc.arg(search)))>0 THEN 20 ELSE 0 END FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND tr.locale='ru'),0)
  + 5*ts_rank_cd(a.search_simple,plainto_tsquery('simple',sqlc.arg(search)))
  + 5*ts_rank_cd(a.search_russian,plainto_tsquery('russian',sqlc.arg(search)))
  + word_similarity(lower(sqlc.arg(search)),lower(a.title)) END DESC,
@@ -27,12 +29,14 @@ WHERE (NOT sqlc.arg(public_only)::boolean OR (a.is_published AND c.is_active))
  AND (sqlc.arg(tag)::text='' OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND lower(t.name)=lower(sqlc.arg(tag))))
  AND (sqlc.arg(search)::text='' OR a.search_simple @@ plainto_tsquery('simple',sqlc.arg(search))
  OR a.search_russian @@ plainto_tsquery('russian',sqlc.arg(search))
+ OR EXISTS(SELECT 1 FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND (tr.search_russian @@ plainto_tsquery('russian',sqlc.arg(search)) OR strpos(lower(tr.title || ' ' || tr.description || ' ' || tr.symptoms || ' ' || tr.solution_steps::text),lower(sqlc.arg(search)))>0))
  OR strpos(lower(a.title || ' ' || a.description || ' ' || a.symptoms || ' ' || a.solution_steps::text),lower(sqlc.arg(search)))>0
  OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND strpos(lower(t.name),lower(sqlc.arg(search)))>0)
  OR (length(sqlc.arg(search))>=3 AND word_similarity(lower(sqlc.arg(search)),lower(a.title))>=0.32));
 
 -- name: KnowledgeArticleDetails :many
 SELECT a.id,a.version,a.title,a.slug,a.description,a.category_id,
+ COALESCE((SELECT jsonb_build_object('title',tr.title,'description',tr.description,'symptoms',tr.symptoms,'solution_steps',tr.solution_steps) FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND tr.locale='ru'),'null'::jsonb)::jsonb AS translation_ru,
  c.name_kk AS category_name_kk,c.name_ru AS category_name_ru,c.is_active AS category_active,
  a.symptoms,a.solution_steps,a.author_id,u.display_name AS author_name,a.video_id,
  a.is_published,a.published_at,a.created_at,a.updated_at,
@@ -127,3 +131,8 @@ SELECT version FROM knowledge_articles WHERE id=$1 FOR UPDATE;
 -- name: KnowledgeMediaAttached :one
 SELECT EXISTS(SELECT 1 FROM knowledge_articles WHERE id=$1 AND video_id=$2)
  OR EXISTS(SELECT 1 FROM article_media WHERE article_id=$1 AND media_id=$2);
+
+-- name: KnowledgeUpsertRussianTranslation :exec
+INSERT INTO knowledge_article_translations(article_id,locale,title,description,symptoms,solution_steps)
+VALUES($1,'ru',$2,$3,$4,$5)
+ON CONFLICT(article_id,locale) DO UPDATE SET title=EXCLUDED.title,description=EXCLUDED.description,symptoms=EXCLUDED.symptoms,solution_steps=EXCLUDED.solution_steps;

@@ -101,6 +101,23 @@ func (s *Service) GetBySlug(ctx context.Context, actor auth.User, slug string) (
 	return s.repo.GetBySlug(ctx, slug, !staff(actor))
 }
 func normalizeArticle(input ArticleInput) (ArticleInput, error) {
+	if input.TranslationRU != nil {
+		translation := *input.TranslationRU
+		translation.Title = strings.TrimSpace(translation.Title)
+		translation.Description = strings.TrimSpace(translation.Description)
+		translation.Symptoms = strings.TrimSpace(translation.Symptoms)
+		if !httpx.ValidText(translation.Title, 250) || !validBody(translation.Description, 2000, false) || !validBody(translation.Symptoms, 10000, false) || len(translation.SolutionSteps) < 1 || len(translation.SolutionSteps) > 100 {
+			return input, ErrInvalidInput
+		}
+		translation.SolutionSteps = append([]string(nil), translation.SolutionSteps...)
+		for i, step := range translation.SolutionSteps {
+			translation.SolutionSteps[i] = strings.TrimSpace(step)
+			if !validBody(translation.SolutionSteps[i], 5000, false) {
+				return input, ErrInvalidInput
+			}
+		}
+		input.TranslationRU = &translation
+	}
 	input.Title = strings.TrimSpace(input.Title)
 	input.Slug = strings.TrimSpace(input.Slug)
 	input.Description = strings.TrimSpace(input.Description)
@@ -202,6 +219,10 @@ func (s *Service) Save(ctx context.Context, actor auth.User, id string, input Ar
 			}
 			if existing.Version == 2147483647 {
 				return ErrVersionConflict
+			}
+			// Older clients omit translations. Preserve them instead of silently erasing content.
+			if normalized.TranslationRU == nil {
+				normalized.TranslationRU = existing.TranslationRU
 			}
 		}
 		if normalized.VideoID != nil {

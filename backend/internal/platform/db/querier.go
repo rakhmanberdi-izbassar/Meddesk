@@ -73,6 +73,7 @@ type Querier interface {
 	KnowledgeTags(ctx context.Context, arg KnowledgeTagsParams) ([]string, error)
 	KnowledgeUpdateArticle(ctx context.Context, arg KnowledgeUpdateArticleParams) error
 	KnowledgeUpdateCategory(ctx context.Context, arg KnowledgeUpdateCategoryParams) (KnowledgeCategory, error)
+	KnowledgeUpsertRussianTranslation(ctx context.Context, arg KnowledgeUpsertRussianTranslationParams) error
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	ListManagedDepartments(ctx context.Context, arg ListManagedDepartmentsParams) ([]Department, error)
 	ListManagedUsers(ctx context.Context, arg ListManagedUsersParams) ([]ListManagedUsersRow, error)

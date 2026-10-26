@@ -1,0 +1,158 @@
+[
+  {
+    "slug": "ncalayer-iske-qosylmaidy",
+    "title": "NCALayer іске қосылмайды немесе сайт оны көрмейді",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/685e248f-13e4-47ba-ac9b-ce5bd25dc993",
+    "category": "ncalayer-eds"
+  },
+  {
+    "slug": "eds-kiru-kol-qoyu-katesi",
+    "title": "ЭЦҚ арқылы кіру немесе қол қою кезінде қате шығады",
+    "category": "ncalayer-eds",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/cd298bfc-fe27-4663-8cbf-603ebbd2685c"
+  },
+  {
+    "slug": "printer-baspaydy-offline",
+    "title": "Принтер басып шығармайды немесе Offline болып тұр",
+    "category": "printers",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/3b51ad65-9d3a-48b5-89c9-2964c7b9f901"
+  },
+  {
+    "slug": "printer-kezek-toqtap-qaldy",
+    "title": "Принтердің басып шығару кезегі тоқтап қалды",
+    "category": "printers",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/3bbe841c-dd26-4de7-8078-568ce682b4e1"
+  },
+  {
+    "slug": "internet-qosylymy-zhoq",
+    "title": "Компьютерде интернет байланысы жоқ",
+    "category": "network",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/87d77848-c7f1-4447-b857-78f993780e5b"
+  },
+  {
+    "slug": "wifi-qosylmaidy",
+    "title": "Wi-Fi желісіне қосылу мүмкін емес",
+    "category": "network",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/1f4c07b2-8197-4902-b649-63c88ba5f71e"
+  },
+  {
+    "slug": "kompyuter-bayau-zhumys-isteydi",
+    "title": "Компьютер баяу жұмыс істейді",
+    "category": "windows",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/e3116644-4434-4dee-8c56-ee7c2991102c"
+  },
+  {
+    "slug": "kun-men-uakyt-durys-emes",
+    "title": "Компьютердегі күн немесе уақыт дұрыс емес",
+    "category": "windows",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/a4499704-ea8e-42ff-ad81-7e8755177265"
+  },
+  {
+    "slug": "sayt-beti-ashylmaidy",
+    "title": "Браузерде сайт немесе бет ашылмайды",
+    "category": "browsers",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/5025b41b-7263-49e8-8c5b-4f98fa60d01c"
+  },
+  {
+    "slug": "sertifikat-qauipsiz-qosylym-eskertui",
+    "title": "Браузер сертификат немесе қауіпсіз қосылым ескертуін көрсетеді",
+    "category": "browsers",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/349b3b0d-782e-4270-a3d2-925fa961a4b7"
+  },
+  {
+    "slug": "word-excel-quzhatyn-qalpyna-keltiru",
+    "title": "Word немесе Excel-де сақталмаған құжатты іздеу",
+    "category": "office",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/7822450b-538e-4b7a-b665-ce9c69708f03"
+  },
+  {
+    "slug": "excel-formula-esepteimeydi",
+    "title": "Excel формуласын есептемейді немесе ескі мәнді көрсетеді",
+    "category": "office",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/202ffff6-0ee7-42e1-bb65-ea6be2c88d15"
+  },
+  {
+    "slug": "kiru-parol-qabyldanbaidy",
+    "title": "Жүйеге кіру мүмкін емес: логин немесе пароль қабылданбайды",
+    "category": "accounts-access",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/3f27c5c9-a821-4751-81ae-15c49aaea381"
+  },
+  {
+    "slug": "qolzhetimdilik-ruksat-surau",
+    "title": "Қажетті жүйеге немесе бөлімге қолжетімділік жоқ",
+    "category": "accounts-access",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/d486bc6f-8a1c-4b79-86db-e1491ae534eb"
+  },
+  {
+    "slug": "poshta-hat-zhiberilmeidi",
+    "title": "Электрондық хат жіберілмейді немесе келмейді",
+    "category": "email",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/b1cc6148-3a2a-481d-8198-5bbef64bc830"
+  },
+  {
+    "slug": "poshta-tirkemesi-ashylmaidy",
+    "title": "Поштадағы тіркеме ашылмайды немесе жүктелмейді",
+    "category": "email",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/f6e7bb98-ce8d-4cf5-9af0-0f47ed69cacc"
+  },
+  {
+    "slug": "skaner-tabylmaidy",
+    "title": "Компьютер сканерді көрмейді",
+    "category": "scanners",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/ce37293b-8ae8-4c6a-b429-6a5453b99057"
+  },
+  {
+    "slug": "skan-sapasy-men-saqtau",
+    "title": "Скан сапасы нашар немесе файл дұрыс сақталмайды",
+    "category": "scanners",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/db207cab-48cc-4a6d-ae14-4bfb3b580750"
+  },
+  {
+    "slug": "klinika-zhuyesi-ashylmaidy",
+    "title": "Клиниканың жұмыс жүйесі ашылмайды",
+    "category": "clinic-systems",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/b441920c-7420-4148-9753-52fa8c997241"
+  },
+  {
+    "slug": "klinika-sessiya-ayaqtaldy",
+    "title": "Жұмыс жүйесінде сессия аяқталды деген хабарлама шығады",
+    "category": "clinic-systems",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/d3a53f3d-a0e6-4773-aadb-47b3ad51187e"
+  },
+  {
+    "slug": "ortaq-buma-ashylmaidy",
+    "title": "Ортақ бума немесе желілік диск ашылмайды",
+    "category": "files-storage",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/e3f5b212-4093-4d78-80e0-0ea81235599b"
+  },
+  {
+    "slug": "fail-saqtalmaydy",
+    "title": "Құжат сақталмайды: орын аз немесе рұқсат жоқ",
+    "category": "files-storage",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/f0ae50da-2eaf-4302-b49b-48ced1b05c58"
+  },
+  {
+    "slug": "monitor-keskin-zhoq",
+    "title": "Мониторда кескін жоқ немесе екінші экран табылмайды",
+    "category": "equipment",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/545ab9a3-ca26-4fcc-b882-4e6c053c83c2"
+  },
+  {
+    "slug": "mikrofon-dybys-zhumys-istemeidi",
+    "title": "Микрофон немесе құлаққаптағы дыбыс жұмыс істемейді",
+    "category": "equipment",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/0886192c-be3c-4d9f-b368-d6ef7fe8ba5c"
+  },
+  {
+    "slug": "kumandi-hat-fishing",
+    "title": "Күмәнді хат немесе фишинг сілтемесі келді",
+    "category": "information-security",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/89b1f3bc-5fe5-42c6-b869-0a706a83b2fa"
+  },
+  {
+    "slug": "antivirus-qauip-eskertui",
+    "title": "Антивирус немесе браузер қауіп туралы ескерту көрсетті",
+    "category": "information-security",
+    "url": "https://meddeskv2.up.railway.app/knowledge/articles/9d456dc3-ce93-4c3b-88c5-b1c9ccf86967"
+  }
+]

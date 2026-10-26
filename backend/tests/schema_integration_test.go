@@ -92,7 +92,7 @@ func TestMigratedSchemaReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generated migration state query: %v", err)
 	}
-	if state.Version != 4 || state.Dirty {
+	if state.Version != 5 || state.Dirty {
 		t.Fatalf("expected clean migration 4; got %+v", state)
 	}
 	var roles int

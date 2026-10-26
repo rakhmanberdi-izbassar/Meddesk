@@ -214,3 +214,15 @@ describe('knowledge workflows', () => {
     expect(validMediaFile(file, 'ARTICLE_VIDEO')).toBe(false)
   })
 })
+
+it('switches complete article content without recording another view', async () => {
+ article.translation_ru = { title: 'Запуск программы', description: 'Описание проблемы', symptoms: 'Программа не отвечает', solution_steps: ['Откройте программу', 'Повторите попытку'] }
+ renderPage('/knowledge/articles/article-id')
+ await screen.findByRole('heading', { name: example.title })
+ await userEvent.click(screen.getByRole('button', { name: 'Русский' }))
+ expect(screen.getByRole('heading', { name: 'Запуск программы' })).toBeInTheDocument()
+ expect(screen.getByText('Описание проблемы')).toBeInTheDocument()
+ expect(screen.getByText('Программа не отвечает')).toBeInTheDocument()
+ expect(screen.getByText('Откройте программу')).toBeInTheDocument()
+ expect(vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith('/views'))).toHaveLength(1)
+})

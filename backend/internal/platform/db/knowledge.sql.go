@@ -13,6 +13,7 @@ import (
 
 const knowledgeArticleDetails = `-- name: KnowledgeArticleDetails :many
 SELECT a.id,a.version,a.title,a.slug,a.description,a.category_id,
+ COALESCE((SELECT jsonb_build_object('title',tr.title,'description',tr.description,'symptoms',tr.symptoms,'solution_steps',tr.solution_steps) FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND tr.locale='ru'),'null'::jsonb)::jsonb AS translation_ru,
  c.name_kk AS category_name_kk,c.name_ru AS category_name_ru,c.is_active AS category_active,
  a.symptoms,a.solution_steps,a.author_id,u.display_name AS author_name,a.video_id,
  a.is_published,a.published_at,a.created_at,a.updated_at,
@@ -39,6 +40,7 @@ type KnowledgeArticleDetailsRow struct {
 	Slug            string             `json:"slug"`
 	Description     string             `json:"description"`
 	CategoryID      pgtype.UUID        `json:"category_id"`
+	TranslationRu   []byte             `json:"translation_ru"`
 	CategoryNameKk  string             `json:"category_name_kk"`
 	CategoryNameRu  string             `json:"category_name_ru"`
 	CategoryActive  bool               `json:"category_active"`
@@ -74,6 +76,7 @@ func (q *Queries) KnowledgeArticleDetails(ctx context.Context, arg KnowledgeArti
 			&i.Slug,
 			&i.Description,
 			&i.CategoryID,
+			&i.TranslationRu,
 			&i.CategoryNameKk,
 			&i.CategoryNameRu,
 			&i.CategoryActive,
@@ -133,6 +136,7 @@ WHERE (NOT $1::boolean OR (a.is_published AND c.is_active))
  AND ($4::text='' OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND lower(t.name)=lower($4)))
  AND ($5::text='' OR a.search_simple @@ plainto_tsquery('simple',$5)
  OR a.search_russian @@ plainto_tsquery('russian',$5)
+ OR EXISTS(SELECT 1 FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND (tr.search_russian @@ plainto_tsquery('russian',$5) OR strpos(lower(tr.title || ' ' || tr.description || ' ' || tr.symptoms || ' ' || tr.solution_steps::text),lower($5))>0))
  OR strpos(lower(a.title || ' ' || a.description || ' ' || a.symptoms || ' ' || a.solution_steps::text),lower($5))>0
  OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND strpos(lower(t.name),lower($5))>0)
  OR (length($5)>=3 AND word_similarity(lower($5),lower(a.title))>=0.32))
@@ -380,11 +384,13 @@ WHERE (NOT $1::boolean OR (a.is_published AND c.is_active))
  AND ($4::text='' OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND lower(t.name)=lower($4)))
  AND ($5::text='' OR a.search_simple @@ plainto_tsquery('simple',$5)
  OR a.search_russian @@ plainto_tsquery('russian',$5)
+ OR EXISTS(SELECT 1 FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND (tr.search_russian @@ plainto_tsquery('russian',$5) OR strpos(lower(tr.title || ' ' || tr.description || ' ' || tr.symptoms || ' ' || tr.solution_steps::text),lower($5))>0))
  OR strpos(lower(a.title || ' ' || a.description || ' ' || a.symptoms || ' ' || a.solution_steps::text),lower($5))>0
  OR EXISTS(SELECT 1 FROM article_tags at JOIN knowledge_tags t ON t.id=at.tag_id WHERE at.article_id=a.id AND strpos(lower(t.name),lower($5))>0)
  OR (length($5)>=3 AND word_similarity(lower($5),lower(a.title))>=0.32))
 ORDER BY CASE WHEN $5::text='' THEN 0 ELSE
  (CASE WHEN strpos(lower(a.title),lower($5))>0 THEN 20 ELSE 0 END)
+ + COALESCE((SELECT 5*ts_rank_cd(tr.search_russian,plainto_tsquery('russian',$5)) + CASE WHEN strpos(lower(tr.title),lower($5))>0 THEN 20 ELSE 0 END FROM knowledge_article_translations tr WHERE tr.article_id=a.id AND tr.locale='ru'),0)
  + 5*ts_rank_cd(a.search_simple,plainto_tsquery('simple',$5))
  + 5*ts_rank_cd(a.search_russian,plainto_tsquery('russian',$5))
  + word_similarity(lower($5),lower(a.title)) END DESC,
@@ -658,4 +664,29 @@ func (q *Queries) KnowledgeUpdateCategory(ctx context.Context, arg KnowledgeUpda
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const knowledgeUpsertRussianTranslation = `-- name: KnowledgeUpsertRussianTranslation :exec
+INSERT INTO knowledge_article_translations(article_id,locale,title,description,symptoms,solution_steps)
+VALUES($1,'ru',$2,$3,$4,$5)
+ON CONFLICT(article_id,locale) DO UPDATE SET title=EXCLUDED.title,description=EXCLUDED.description,symptoms=EXCLUDED.symptoms,solution_steps=EXCLUDED.solution_steps
+`
+
+type KnowledgeUpsertRussianTranslationParams struct {
+	ArticleID     pgtype.UUID `json:"article_id"`
+	Title         string      `json:"title"`
+	Description   string      `json:"description"`
+	Symptoms      string      `json:"symptoms"`
+	SolutionSteps []byte      `json:"solution_steps"`
+}
+
+func (q *Queries) KnowledgeUpsertRussianTranslation(ctx context.Context, arg KnowledgeUpsertRussianTranslationParams) error {
+	_, err := q.db.Exec(ctx, knowledgeUpsertRussianTranslation,
+		arg.ArticleID,
+		arg.Title,
+		arg.Description,
+		arg.Symptoms,
+		arg.SolutionSteps,
+	)
+	return err
 }

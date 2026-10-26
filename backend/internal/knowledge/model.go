@@ -18,29 +18,38 @@ var (
 )
 
 type Article struct {
-	CategoryActive  bool       `json:"category_active"`
-	ID              string     `json:"id"`
-	Version         int32      `json:"version"`
-	Title           string     `json:"title"`
-	Slug            string     `json:"slug"`
-	Description     string     `json:"description"`
-	CategoryID      string     `json:"category_id"`
-	CategoryNameKK  string     `json:"category_name_kk"`
-	CategoryNameRU  string     `json:"category_name_ru"`
-	Symptoms        string     `json:"symptoms"`
-	SolutionSteps   []string   `json:"solution_steps"`
-	Tags            []string   `json:"tags"`
-	AuthorID        string     `json:"author_id"`
-	AuthorName      string     `json:"author_name"`
-	VideoID         *string    `json:"video_id"`
-	ImageIDs        []string   `json:"image_ids"`
-	IsPublished     bool       `json:"is_published"`
-	PublishedAt     *time.Time `json:"published_at"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-	ViewCount       int64      `json:"view_count"`
-	HelpfulCount    int64      `json:"helpful_count"`
-	NotHelpfulCount int64      `json:"not_helpful_count"`
+	TranslationRU   *ArticleTranslation `json:"translation_ru"`
+	CategoryActive  bool                `json:"category_active"`
+	ID              string              `json:"id"`
+	Version         int32               `json:"version"`
+	Title           string              `json:"title"`
+	Slug            string              `json:"slug"`
+	Description     string              `json:"description"`
+	CategoryID      string              `json:"category_id"`
+	CategoryNameKK  string              `json:"category_name_kk"`
+	CategoryNameRU  string              `json:"category_name_ru"`
+	Symptoms        string              `json:"symptoms"`
+	SolutionSteps   []string            `json:"solution_steps"`
+	Tags            []string            `json:"tags"`
+	AuthorID        string              `json:"author_id"`
+	AuthorName      string              `json:"author_name"`
+	VideoID         *string             `json:"video_id"`
+	ImageIDs        []string            `json:"image_ids"`
+	IsPublished     bool                `json:"is_published"`
+	PublishedAt     *time.Time          `json:"published_at"`
+	CreatedAt       time.Time           `json:"created_at"`
+	UpdatedAt       time.Time           `json:"updated_at"`
+	ViewCount       int64               `json:"view_count"`
+	HelpfulCount    int64               `json:"helpful_count"`
+	NotHelpfulCount int64               `json:"not_helpful_count"`
+}
+
+// The original article fields are Kazakh; a complete Russian translation is optional.
+type ArticleTranslation struct {
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	Symptoms      string   `json:"symptoms"`
+	SolutionSteps []string `json:"solution_steps"`
 }
 type Category struct {
 	ID          string    `json:"id"`
@@ -53,17 +62,18 @@ type Category struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 type ArticleInput struct {
-	Version       int32    `json:"version,omitempty"`
-	Title         string   `json:"title"`
-	Slug          string   `json:"slug"`
-	Description   string   `json:"description"`
-	CategoryID    string   `json:"category_id"`
-	Symptoms      string   `json:"symptoms"`
-	SolutionSteps []string `json:"solution_steps"`
-	Tags          []string `json:"tags"`
-	VideoID       *string  `json:"video_id"`
-	ImageIDs      []string `json:"image_ids"`
-	IsPublished   *bool    `json:"is_published"`
+	TranslationRU *ArticleTranslation `json:"translation_ru,omitempty"`
+	Version       int32               `json:"version,omitempty"`
+	Title         string              `json:"title"`
+	Slug          string              `json:"slug"`
+	Description   string              `json:"description"`
+	CategoryID    string              `json:"category_id"`
+	Symptoms      string              `json:"symptoms"`
+	SolutionSteps []string            `json:"solution_steps"`
+	Tags          []string            `json:"tags"`
+	VideoID       *string             `json:"video_id"`
+	ImageIDs      []string            `json:"image_ids"`
+	IsPublished   *bool               `json:"is_published"`
 }
 type CategoryInput struct {
 	Slug        string `json:"slug"`

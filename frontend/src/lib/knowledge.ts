@@ -4,7 +4,9 @@ export const categorySchema = z.object({ id: z.string(), slug: z.string(), name_
 export type Category = z.infer<typeof categorySchema>
 export const categoryResultSchema = z.object({ category: categorySchema })
 export const categoriesPageSchema = z.object({ items: z.array(categorySchema), total: z.number(), limit: z.number(), offset: z.number() })
+export const articleTranslationSchema = z.object({ title: z.string(), description: z.string(), symptoms: z.string(), solution_steps: z.array(z.string()) })
 export const articleSchema = z.object({
+  translation_ru: articleTranslationSchema.nullable().optional(),
   id: z.string(), version: z.number().int(), title: z.string(), slug: z.string(), description: z.string(),
   category_id: z.string(), category_name_kk: z.string(), category_name_ru: z.string(), category_active: z.boolean(), symptoms: z.string(),
   solution_steps: z.array(z.string()), tags: z.array(z.string()), author_id: z.string(), author_name: z.string(),
@@ -12,6 +14,9 @@ export const articleSchema = z.object({
   created_at: z.string(), updated_at: z.string(), view_count: z.number(), helpful_count: z.number(), not_helpful_count: z.number(),
 })
 export type Article = z.infer<typeof articleSchema>
+export function localizeArticle(article: Article, locale: 'kk' | 'ru'): Article {
+  return locale === 'ru' && article.translation_ru ? { ...article, ...article.translation_ru } : article
+}
 export const articleResultSchema = z.object({ article: articleSchema })
 export const articlesPageSchema = z.object({ items: z.array(articleSchema), total: z.number(), limit: z.number(), offset: z.number() })
 export const viewsSchema = z.object({ recorded: z.boolean(), view_count: z.number() })

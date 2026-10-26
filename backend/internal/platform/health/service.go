@@ -7,7 +7,7 @@ import (
 	"github.com/meddesk/meddesk/backend/internal/platform/db"
 )
 
-const ExpectedMigrationVersion int64 = 4
+const ExpectedMigrationVersion int64 = 5
 
 type Pinger interface{ Ping(context.Context) error }
 type MigrationReader interface {

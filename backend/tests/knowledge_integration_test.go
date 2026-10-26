@@ -287,3 +287,28 @@ func TestKnowledgeCategoryManagementAndLocalizedFiltering(t *testing.T) {
 		t.Fatalf("admin inactive filter: %+v %v", page, err)
 	}
 }
+
+func TestKnowledgeRussianTranslation(t *testing.T) {
+	ctx, tx := databaseTransaction(t)
+	actor, f := managementAdmin(t, ctx, tx)
+	service := knowledge.NewService(knowledge.NewRepository(tx))
+	input := knowledgeInput(f, "translation-"+knowledgeUUID(t, ctx, tx), true)
+	input.TranslationRU = &knowledge.ArticleTranslation{Title: "Диагностика видеоконференции", Description: "Проверка оборудования", Symptoms: "Микрофон недоступен", SolutionSteps: []string{"Проверьте подключение"}}
+	article, err := service.Save(ctx, actor, "", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if article.TranslationRU == nil || article.TranslationRU.Title != input.TranslationRU.Title {
+		t.Fatalf("translation not persisted: %+v", article)
+	}
+	page, err := service.List(ctx, actor, knowledge.Filter{Search: "видеоконференции", CategoryID: f.category, Limit: 20})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != article.ID {
+		t.Fatalf("translated search failed: %+v %v", page, err)
+	}
+	input.Version = article.Version
+	input.TranslationRU = nil
+	article, err = service.Save(ctx, actor, article.ID, input)
+	if err != nil || article.TranslationRU == nil {
+		t.Fatalf("legacy update erased translation: %+v %v", article, err)
+	}
+}

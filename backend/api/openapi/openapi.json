@@ -10949,6 +10949,15 @@
           "not_helpful_count": {
             "type": "integer",
             "minimum": 0
+          },
+          "translation_ru": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArticleTranslationRU"
+              }
+            ],
+            "nullable": true,
+            "description": "Optional complete Russian translation. Omission on update preserves the existing translation. Original fields contain Kazakh content."
           }
         },
         "required": [
@@ -11034,6 +11043,15 @@
           },
           "is_published": {
             "type": "boolean"
+          },
+          "translation_ru": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArticleTranslationRU"
+              }
+            ],
+            "nullable": true,
+            "description": "Optional complete Russian translation. Omission on update preserves the existing translation. Original fields contain Kazakh content."
           }
         },
         "required": [
@@ -11108,6 +11126,15 @@
           "version": {
             "type": "integer",
             "minimum": 1
+          },
+          "translation_ru": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArticleTranslationRU"
+              }
+            ],
+            "nullable": true,
+            "description": "Optional complete Russian translation. Omission on update preserves the existing translation. Original fields contain Kazakh content."
           }
         },
         "required": [
@@ -12548,6 +12575,39 @@
           "entity_types",
           "actors"
         ]
+      },
+      "ArticleTranslationRU": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "description",
+          "symptoms",
+          "solution_steps"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "symptoms": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "solution_steps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 5000
+            },
+            "maxItems": 100,
+            "minItems": 1
+          }
+        }
       }
     }
   }

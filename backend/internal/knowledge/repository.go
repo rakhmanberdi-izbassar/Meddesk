@@ -73,6 +73,11 @@ func articleDTO(row db.KnowledgeArticleDetailsRow) (Article, error) {
 		tags = []string{}
 	}
 	article := Article{ID: uuidString(row.ID), Version: row.Version, Title: row.Title, Slug: row.Slug, Description: row.Description, CategoryID: uuidString(row.CategoryID), CategoryNameKK: row.CategoryNameKk, CategoryNameRU: row.CategoryNameRu, CategoryActive: row.CategoryActive, Symptoms: row.Symptoms, SolutionSteps: steps, Tags: tags, AuthorID: uuidString(row.AuthorID), AuthorName: row.AuthorName, ImageIDs: images, IsPublished: row.IsPublished, CreatedAt: row.CreatedAt.Time, UpdatedAt: row.UpdatedAt.Time, ViewCount: row.ViewCount, HelpfulCount: row.HelpfulCount, NotHelpfulCount: row.NotHelpfulCount}
+	if len(row.TranslationRu) > 0 {
+		if err := json.Unmarshal(row.TranslationRu, &article.TranslationRU); err != nil {
+			return Article{}, err
+		}
+	}
 	if row.VideoID.Valid {
 		v := uuidString(row.VideoID)
 		article.VideoID = &v
@@ -215,6 +220,19 @@ func (r *mutationRepository) UpdateArticle(ctx context.Context, id string, input
 	return getArticle(ctx, r.q, uid(id), false)
 }
 func (r *mutationRepository) associations(ctx context.Context, id pgtype.UUID, input ArticleInput) error {
+	if input.TranslationRU != nil {
+		translation := input.TranslationRU
+		steps, err := json.Marshal(translation.SolutionSteps)
+		if err != nil {
+			return err
+		}
+		if err := r.q.KnowledgeUpsertRussianTranslation(ctx, db.KnowledgeUpsertRussianTranslationParams{
+			ArticleID: id, Title: translation.Title, Description: translation.Description,
+			Symptoms: translation.Symptoms, SolutionSteps: steps,
+		}); err != nil {
+			return mapError(err)
+		}
+	}
 	if err := r.q.KnowledgeRemoveArticleTags(ctx, id); err != nil {
 		return err
 	}

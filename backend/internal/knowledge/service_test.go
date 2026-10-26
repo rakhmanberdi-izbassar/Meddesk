@@ -159,3 +159,19 @@ func TestCategoryMutationRequiresAdministrator(t *testing.T) {
 		t.Fatalf("engineer category mutation: %v", err)
 	}
 }
+
+func TestRussianTranslationValidation(t *testing.T) {
+	input := validInput()
+	input.TranslationRU = &ArticleTranslation{Title: " Запуск ", Description: " Описание ", Symptoms: " Симптом ", SolutionSteps: []string{" Откройте программу "}}
+	normalized, err := normalizeArticle(input)
+	if err != nil || normalized.TranslationRU.Title != "Запуск" || normalized.TranslationRU.SolutionSteps[0] != "Откройте программу" {
+		t.Fatalf("translation normalization: %+v %v", normalized.TranslationRU, err)
+	}
+	if input.TranslationRU.SolutionSteps[0] != " Откройте программу " {
+		t.Fatal("normalization mutated caller")
+	}
+	input.TranslationRU.Description = ""
+	if _, err := normalizeArticle(input); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("partial translation accepted: %v", err)
+	}
+}
