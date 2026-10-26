@@ -41,7 +41,35 @@ After publishing these files, add a **new** GitHub-backed service named `meddesk
 
 The proxy discovers DNS from the container resolver, supports IPv4/IPv6 private DNS, refreshes backend resolution, and streams authorized media through the API. It does not publish media as static files. Do not supply database passwords to the frontend service. Backend client-IP throttling continues using the default untrusted-proxy policy until actual Railway/gateway proxy trust is explicitly validated; do not allow global proxy CIDRs. This frontend gateway forwards its immediate peer address and does not treat arbitrary forwarded client headers as authenticated identity.
 
-The existing production seed intentionally rejects development demo accounts. A login page alone does not provision a production administrator. Keep the validated backend and database running; initial administrator provisioning and persistent backend media storage remain required before real clinic use.
+The existing production seed intentionally rejects development demo accounts. A login page alone does not provision a production administrator. Use the one-time bootstrap below and keep the validated backend and database running. Persistent backend media storage remains required before real clinic use.
+
+## First production administrator
+
+The backend image includes `/app/bootstrap-admin`. It requires explicit `-confirm-empty-database`, `APP_ENV=production` and a reachable database with clean migrations. It uses the same database URL/CA configuration as the API. The email comes from `BOOTSTRAP_ADMIN_EMAIL`; the password arrives only on stdin, not as a CLI argument. Optional `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_DEPARTMENT` default to `Әкімші` and `Әкімшілік`.
+
+After publishing the updated Dockerfile/command and deploying the **backend**, open **Meddesk → Console**, not the Postgres or frontend console. Enter the following commands one step at a time. Do not use a shell with command tracing enabled. Choose your own email and a unique 12–72 UTF-8 byte password; never send the password in chat or store it in source/Railway variables.
+
+For the simplest interactive path, run `sh /app/setup-admin.sh` and answer its email, hidden password and repeat-password prompts. It checks that both password entries match and passes the password only on stdin to the guarded CLI. The manual equivalent is below.
+
+```sh
+printf 'Administrator email: '
+read -r BOOTSTRAP_ADMIN_EMAIL
+export BOOTSTRAP_ADMIN_EMAIL
+read -rs -p 'Administrator password (12–72 bytes): ' MEDDESK_ADMIN_PASSWORD
+printf '\n'
+read -rs -p 'Repeat password: ' MEDDESK_ADMIN_CONFIRM
+printf '\n'
+if [ "$MEDDESK_ADMIN_PASSWORD" = "$MEDDESK_ADMIN_CONFIRM" ]; then
+  printf '%s\n' "$MEDDESK_ADMIN_PASSWORD" | /app/bootstrap-admin -confirm-empty-database
+else
+  printf 'Passwords differ; no account was created.\n'
+fi
+unset MEDDESK_ADMIN_PASSWORD MEDDESK_ADMIN_CONFIRM BOOTSTRAP_ADMIN_EMAIL
+```
+
+Success prints `Initial administrator created.` Sign in at the frontend `/login` with the supplied email/password. Use user management for subsequent employees/engineers. This CLI creates exactly one initial administrator and the named active department (or reuses an existing active department), with bcrypt cost 12 and transactional audits. A shared administration advisory lock plus a users-table lock protects the empty check and inserts. It refuses whenever **any** user already exists, including inactive users; it never resets passwords or promotes existing users. An inactive matching department is rejected. Audit failure rolls back the user/new department. A failed or interrupted commit requires checking stored state before retrying; bootstrap is not a password-recovery tool.
+
+Local verification passed: bootstrap input/stdin/confirmation unit tests under the Go race detector, focused vet, a production backend Docker build including the CLI, and three real PostgreSQL 18 race-enabled tests (first account plus repeat refusal/credential preservation, inactive department refusal, audit-failure rollback). The disposable database was removed. No production administrator was created by these local checks. Reproduce the isolated database checks with `python3 scripts/test-bootstrap.py` from the repository root (Docker, Go and Python 3 required), or run the existing full `make test-integration` suite. Concurrent invocation is protected by database locks but a separate concurrent-bootstrap test has not been executed.
 
 ### Executed local checks
 

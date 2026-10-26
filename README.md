@@ -34,6 +34,8 @@ For a PostgreSQL server signed by a private CA, set the backend's optional multi
 
 For Railway frontend hosting, use the dedicated `frontend/Dockerfile.railway` with a private backend host/port. It serves React and proxies `/api` under one public origin. Follow the [frontend deployment steps](docs/railway-deployment.md#react-frontend-and-same-origin-api-gateway); the standard frontend image is designed to sit behind the local Compose gateway.
 
+For an empty production database, the backend image includes an operator-only `/app/bootstrap-admin -confirm-empty-database` command. It reads the password from stdin, preserves production TLS, refuses any existing users and commits the initial administrator/department/audits atomically. Follow the [first administrator instructions](docs/railway-deployment.md#first-production-administrator). Development demo provisioning remains disabled in production.
+
 ## Available behavior
 
 - Employees and IT engineers can sign in, access the dashboard/profile, and edit their own display name.
