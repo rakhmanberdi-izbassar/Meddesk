@@ -18,6 +18,7 @@ import (
 type Config struct {
 	Environment        string
 	DatabaseURL        string
+	DatabaseCACert     string
 	HTTPAddress        string
 	MediaDirectory     string
 	RequestTimeout     time.Duration
@@ -45,6 +46,7 @@ func LoadFrom(lookup func(string) (string, bool)) (Config, error) {
 	cfg := Config{
 		Environment:    get("APP_ENV", "development"),
 		DatabaseURL:    get("DATABASE_URL", ""),
+		DatabaseCACert: get("DATABASE_CA_CERT", ""),
 		HTTPAddress:    get("HTTP_ADDR", ":8081"),
 		MediaDirectory: get("MEDIA_DIR", "./var/media"),
 	}

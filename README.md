@@ -30,6 +30,8 @@ If port 8080 is occupied, change both `GATEWAY_PORT` and `AUTH_ALLOWED_ORIGINS` 
 
 Development uses HTTP bound to loopback. A clinic production deployment requires HTTPS, secret management, tested backups/retention, separate migration/runtime database privileges, and controlled initial administrator provisioning. Production configuration rejects insecure cookies, implicit/non-HTTPS origins, and PostgreSQL connections without `sslmode=verify-full`. Default Compose PostgreSQL is for development.
 
+For a PostgreSQL server signed by a private CA, set the backend's optional multiline `DATABASE_CA_CERT` to the public CA PEM. Full certificate/hostname verification remains required. See [Railway PostgreSQL TLS setup](docs/railway-deployment.md) for certificate checks, variable setup and readiness verification. This requires deploying the backend code that supports the variable; it does not publish the frontend automatically.
+
 ## Available behavior
 
 - Employees and IT engineers can sign in, access the dashboard/profile, and edit their own display name.

@@ -48,7 +48,7 @@ func run(healthcheck bool) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	pool, err := postgres.New(ctx, cfg.DatabaseURL, cfg.RequestTimeout)
+	pool, err := postgres.NewWithRootCA(ctx, cfg.DatabaseURL, cfg.RequestTimeout, cfg.DatabaseCACert)
 	if err != nil {
 		logger.Error("database pool initialization failed")
 		return 1

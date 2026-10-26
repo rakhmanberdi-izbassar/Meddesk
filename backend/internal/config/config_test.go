@@ -11,6 +11,20 @@ func environment(values map[string]string) func(string) (string, bool) {
 	return func(key string) (string, bool) { value, ok := values[key]; return value, ok }
 }
 
+func TestDatabaseCAMultilineEnvironment(t *testing.T) {
+	certificate := "-----BEGIN CERTIFICATE-----\nsynthetic-test-value\n-----END CERTIFICATE-----"
+	cfg, err := LoadFrom(environment(map[string]string{
+		"DATABASE_URL":     "postgres://localhost/meddesk?sslmode=verify-full",
+		"DATABASE_CA_CERT": "\n" + certificate + "\n",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DatabaseCACert != certificate {
+		t.Fatal("multiline CA value was not preserved")
+	}
+}
+
 func TestLoadDefaultsAndOverrides(t *testing.T) {
 	cfg, err := LoadFrom(environment(map[string]string{"DATABASE_URL": "postgres://localhost/meddesk?sslmode=disable"}))
 	if err != nil {

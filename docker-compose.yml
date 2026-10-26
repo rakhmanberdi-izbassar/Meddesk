@@ -39,6 +39,7 @@ services:
       APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: postgres://${POSTGRES_USER:-meddesk}:${POSTGRES_PASSWORD:?Run make env}@postgres:5432/${POSTGRES_DB:-meddesk}?sslmode=disable
       HTTP_ADDR: :8081
+      DATABASE_CA_CERT: ${DATABASE_CA_CERT:-}
       HTTP_REQUEST_TIMEOUT: ${HTTP_REQUEST_TIMEOUT:-10s}
       HTTP_SHUTDOWN_TIMEOUT: ${HTTP_SHUTDOWN_TIMEOUT:-15s}
       MEDIA_DIR: /var/lib/meddesk/media
