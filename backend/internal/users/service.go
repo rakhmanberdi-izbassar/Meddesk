@@ -109,6 +109,15 @@ func (s *Service) Update(ctx context.Context, actor auth.User, id string, input 
 		if err != nil {
 			return err
 		}
+		if id != actor.ID {
+			protected, err := tx.ProtectedOwner(ctx, id)
+			if err != nil {
+				return err
+			}
+			if protected {
+				return ErrForbidden
+			}
+		}
 		if current.IsActive && current.Role == auth.RoleAdmin && (!*input.IsActive || input.Role != auth.RoleAdmin) {
 			count, err := tx.ActiveAdministrators(ctx)
 			if err != nil {

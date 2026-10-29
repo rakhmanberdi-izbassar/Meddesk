@@ -10350,6 +10350,780 @@
           }
         }
       }
+    },
+    "/api/v1/school/access": {
+      "get": {
+        "operationId": "schoolAccess",
+        "summary": "Check explicit school ownership",
+        "description": "Authenticated ownership check. Returns allowed=false for users who are not the explicit school owner; no school records are returned.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolAccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/school/assets": {
+      "get": {
+        "operationId": "listSchoolAsset",
+        "summary": "List private school assets",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolAssetPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Substring search of device name, location or inventory number."
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createSchoolAsset",
+        "summary": "Create private school assets",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version conflict or duplicate inventory number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolAsset"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolAssetInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/school/assets/{id}": {
+      "patch": {
+        "operationId": "updateSchoolAsset",
+        "summary": "Update private school assets",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version conflict or duplicate inventory number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolAsset"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolAssetUpdate"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getSchoolAsset",
+        "summary": "Get private school device",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "School record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolAsset"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/school/tickets": {
+      "get": {
+        "operationId": "listSchoolTicket",
+        "summary": "List private school tickets",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolTicketPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEW",
+                "IN_PROGRESS",
+                "WAITING_FOR_USER",
+                "RESOLVED",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "asset_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createSchoolTicket",
+        "summary": "Create private school tickets",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolTicket"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolTicketInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/school/tickets/{id}": {
+      "patch": {
+        "operationId": "updateSchoolTicket",
+        "summary": "Update private school tickets",
+        "description": "Requires the explicit active school owner. Clinic ADMIN does not grant school access. School records are isolated from clinic reporting.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version conflict or duplicate inventory number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "School record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolTicket"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolTicketUpdate"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -12606,6 +13380,443 @@
             },
             "maxItems": 100,
             "minItems": 1
+          }
+        }
+      },
+      "SchoolAssetInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "COMPUTER",
+              "PRINTER",
+              "CAMERA",
+              "RECORDER",
+              "ROUTER",
+              "SWITCH",
+              "PROJECTOR",
+              "OTHER"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "inventory_number": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "ip_address": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 3000
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "location"
+        ]
+      },
+      "SchoolTicketInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "requester": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "COMPUTERS",
+              "PRINTING",
+              "NETWORK",
+              "SURVEILLANCE",
+              "CLASSROOM",
+              "ACCOUNTS",
+              "OTHER"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "lesson_blocked": {
+            "type": "boolean"
+          },
+          "asset_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "requester",
+          "room",
+          "category",
+          "priority"
+        ]
+      },
+      "SchoolTicketUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "WAITING_FOR_USER",
+              "RESOLVED",
+              "CLOSED"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "status",
+          "priority",
+          "version"
+        ]
+      },
+      "SchoolAssetUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "COMPUTER",
+              "PRINTER",
+              "CAMERA",
+              "RECORDER",
+              "ROUTER",
+              "SWITCH",
+              "PROJECTOR",
+              "OTHER"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "inventory_number": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "ip_address": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 3000
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "location",
+          "version"
+        ]
+      },
+      "SchoolAsset": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "COMPUTER",
+              "PRINTER",
+              "CAMERA",
+              "RECORDER",
+              "ROUTER",
+              "SWITCH",
+              "PROJECTOR",
+              "OTHER"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "inventory_number": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "ip_address": {
+            "type": "string",
+            "maxLength": 64,
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 3000
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "location",
+          "model",
+          "inventory_number",
+          "ip_address",
+          "notes",
+          "id",
+          "version",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "SchoolAssetPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchoolAsset"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "SchoolTicket": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "requester": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "COMPUTERS",
+              "PRINTING",
+              "NETWORK",
+              "SURVEILLANCE",
+              "CLASSROOM",
+              "ACCOUNTS",
+              "OTHER"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "lesson_blocked": {
+            "type": "boolean"
+          },
+          "asset_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "WAITING_FOR_USER",
+              "RESOLVED",
+              "CLOSED"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "requester",
+          "room",
+          "category",
+          "priority",
+          "lesson_blocked",
+          "asset_id",
+          "id",
+          "version",
+          "created_at",
+          "updated_at",
+          "number",
+          "status",
+          "resolution",
+          "resolved_at"
+        ]
+      },
+      "SchoolTicketPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchoolTicket"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "SchoolAccess": {
+        "type": "object",
+        "required": [
+          "allowed"
+        ],
+        "properties": {
+          "allowed": {
+            "type": "boolean"
           }
         }
       }

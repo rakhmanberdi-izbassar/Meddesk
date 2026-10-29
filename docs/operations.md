@@ -1,12 +1,12 @@
 # MedDesk operations and recovery
 
-The delivered MVP is version 0.5.0 and requires clean migration version 5. Standard Compose is a loopback-only development deployment. Its PostgreSQL administrator credentials and HTTP ingress are development conveniences; production rollout is separate deployment work.
+The delivered MVP is version 0.5.0 and requires clean migration version 6. Standard Compose is a loopback-only development deployment. Its PostgreSQL administrator credentials and HTTP ingress are development conveniences; production rollout is separate deployment work.
 
 ## Start, update and observe
 
 Run `make env`, `make up`, `make seed-accounts`, `make smoke`, and `make smoke-auth` in development. Existing environment credentials, database/media volumes, seeded accounts/articles and administrator settings are preserved. Migration 4 adds the settings singleton and an analytics index without replacing existing data. The seed command requires explicit development mode and never provisions production accounts or resets clinic settings.
 
-`make logs` shows normalized route/status/request-ID logs. `/api/v1/health` checks process liveness; `/ready` checks PostgreSQL and clean version 5. A failed/dirty migration requires investigation. Do not force a dirty version merely to pass readiness, or run application down migrations to repair it. Disposable migration rollback tests are available through `make test-integration`.
+`make logs` shows normalized route/status/request-ID logs. `/api/v1/health` checks process liveness; `/ready` checks PostgreSQL and clean version 6. A failed/dirty migration requires investigation. Do not force a dirty version merely to pass readiness, or run application down migrations to repair it. Disposable migration rollback tests are available through `make test-integration`.
 
 Only administrators change clinic name, default ticket priority and reporting timezone in `/admin/settings`. These are application preferences. Origins, session/cookie policy, database credentials and media limits stay in deployment configuration. Existing form priority choices remain stable after a setting change; omitted API priorities use the current database default inside ticket creation.
 
@@ -20,7 +20,7 @@ After copying an archive, run `sha256sum --check checksums.sha256` from its dire
 
 ## Restore and exercise recovery
 
-`make test-backup` creates isolated synthetic PostgreSQL 18 and media services, applies migrations 1–5, runs the backup command, checks checksums, imports into a separate empty database, extracts into a separate directory, and verifies real data, settings, schema version and media bytes. It also verifies that the source backend restarted, then removes only its disposable services/volumes/files. It never targets application volumes. See [the runnable restore test](../scripts/test-backup.sh).
+`make test-backup` creates isolated synthetic PostgreSQL 18 and media services, applies migrations 1–6, runs the backup command, checks checksums, imports into a separate empty database, extracts into a separate directory, and verifies real data, settings, schema version and media bytes. It also verifies that the source backend restarted, then removes only its disposable services/volumes/files. It never targets application volumes. See [the runnable restore test](../scripts/test-backup.sh).
 
 For real recovery, first restore into a new isolated staging deployment with PostgreSQL compatible with the dump. Use `pg_restore --no-owner --no-privileges --exit-on-error` against an empty database and extract only a trusted media archive into an empty private media directory. Keep the old deployment intact until the restored copy is verified. Restore media ownership to the application UID (10001 in the provided image), private file permissions and the configured media directory. Checksums confirm archive integrity; they do not establish that all referenced files are present or operationally usable.
 

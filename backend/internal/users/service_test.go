@@ -154,3 +154,5 @@ func TestAuditFailureIsReturned(t *testing.T) {
 		t.Fatalf("audit failure lost: %v", err)
 	}
 }
+
+func (f *serviceFixture) ProtectedOwner(context.Context, string) (bool, error) { return false, nil }

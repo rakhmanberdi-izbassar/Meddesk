@@ -423,3 +423,18 @@ textarea[aria-invalid="true"] { border-color: #b34f40; }
 .personal-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1180px) { .reporting-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .analytics-breakdowns { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .reporting-filter-grid { grid-template-columns: 1fr; gap: 16px; } .reporting-filter-form .form-actions, .settings-form .form-actions { flex-wrap: wrap; } .analytics-summary, .personal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; } .metric-card { padding: 17px; } .metric-card dt { font-size: 11px; min-height: 36px; } .metric-card dd { font-size: 25px; } .metric-card p { font-size: 10px; } .analytics-semantics { padding: 16px; font-size: 11px; } .analytics-trend, .analytics-breakdown { padding: 18px; } .trend-chart { min-height: 160px; } .settings-form { gap: 19px; } .version-notice button { white-space: normal; height: auto; min-height: 38px; } }
+
+.school-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:18px 0; }
+.school-records { display:grid; gap:16px; }
+.school-record,.school-form { background:var(--surface,#fff); border:1px solid #dce5e7; border-radius:14px; padding:22px; margin:16px 0; }
+.school-record header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.school-record p,.school-record time { margin:10px 0; display:block; }
+.school-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.school-warning { color:#9a3412; font-weight:600; }
+.school-form fieldset { display:grid; gap:16px; border:0; padding:0; }
+.school-form label { display:grid; gap:6px; font-weight:500; }
+.school-form input:not([type=checkbox]),.school-form select,.school-form textarea,.school-toolbar input,.school-toolbar select { width:100%; padding:10px; border:1px solid #b5c8cc; border-radius:8px; background:white; color:#172c34; }
+.school-form input[type=checkbox] { width:18px; height:18px; }
+
+.school-search { display:block; width:min(100%,480px); padding:10px; border:1px solid #b5c8cc; border-radius:8px; margin:8px 0; }
+.school-device-picker { display:grid; gap:12px; }

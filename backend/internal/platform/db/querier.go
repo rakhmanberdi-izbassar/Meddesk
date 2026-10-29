@@ -47,6 +47,7 @@ type Querier interface {
 	GetManagedUserForUpdate(ctx context.Context, id pgtype.UUID) (GetManagedUserForUpdateRow, error)
 	GetMigrationState(ctx context.Context) (SchemaMigration, error)
 	InsertManagementAudit(ctx context.Context, arg InsertManagementAuditParams) error
+	IsPrivateWorkspaceOwner(ctx context.Context, ownerID pgtype.UUID) (bool, error)
 	KnowledgeArticleDetails(ctx context.Context, arg KnowledgeArticleDetailsParams) ([]KnowledgeArticleDetailsRow, error)
 	KnowledgeArticleTicketLinks(ctx context.Context, articleID pgtype.UUID) (bool, error)
 	KnowledgeArticleVersion(ctx context.Context, id pgtype.UUID) (int32, error)
@@ -82,6 +83,19 @@ type Querier interface {
 	MediaCreate(ctx context.Context, arg MediaCreateParams) (MediaFile, error)
 	ReportingActor(ctx context.Context, id pgtype.UUID) (ReportingActorRow, error)
 	RevokeManagedUserSessions(ctx context.Context, userID pgtype.UUID) error
+	SchoolAssetCount(ctx context.Context, search string) (int64, error)
+	SchoolAssets(ctx context.Context, arg SchoolAssetsParams) ([]SchoolAsset, error)
+	SchoolAuthorize(ctx context.Context, ownerID pgtype.UUID) (pgtype.UUID, error)
+	SchoolCreateAsset(ctx context.Context, arg SchoolCreateAssetParams) (SchoolAsset, error)
+	SchoolCreateTicket(ctx context.Context, arg SchoolCreateTicketParams) (SchoolTicket, error)
+	SchoolGetAsset(ctx context.Context, id pgtype.UUID) (SchoolAsset, error)
+	SchoolHistory(ctx context.Context, arg SchoolHistoryParams) error
+	SchoolOwner(ctx context.Context, actorID pgtype.UUID) (bool, error)
+	SchoolTicketCount(ctx context.Context, arg SchoolTicketCountParams) (int64, error)
+	SchoolTicketForUpdate(ctx context.Context, id pgtype.UUID) (SchoolTicket, error)
+	SchoolTickets(ctx context.Context, arg SchoolTicketsParams) ([]SchoolTicket, error)
+	SchoolUpdateAsset(ctx context.Context, arg SchoolUpdateAssetParams) (SchoolAsset, error)
+	SchoolUpdateTicket(ctx context.Context, arg SchoolUpdateTicketParams) (SchoolTicket, error)
 	TicketActorForUpdate(ctx context.Context, id pgtype.UUID) (TicketActorForUpdateRow, error)
 	TicketAssignees(ctx context.Context, id pgtype.UUID) ([]TicketAssigneesRow, error)
 	TicketBump(ctx context.Context, id pgtype.UUID) error

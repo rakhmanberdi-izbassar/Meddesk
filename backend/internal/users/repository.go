@@ -23,6 +23,7 @@ type MutationStore interface {
 	Get(context.Context, string) (auth.User, error)
 	ActiveDepartment(context.Context, string) (bool, error)
 	ActiveAdministrators(context.Context) (int64, error)
+	ProtectedOwner(context.Context, string) (bool, error)
 	Create(context.Context, AccountMutation) (auth.User, error)
 	Update(context.Context, string, AccountMutation) (auth.User, error)
 	Profile(context.Context, string, string) (auth.User, error)
@@ -155,4 +156,8 @@ func mapError(err error) error {
 		}
 	}
 	return err
+}
+
+func (r *mutationRepository) ProtectedOwner(ctx context.Context, id string) (bool, error) {
+	return r.q.IsPrivateWorkspaceOwner(ctx, mustUUID(id))
 }

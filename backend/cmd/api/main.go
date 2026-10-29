@@ -23,6 +23,7 @@ import (
 	"github.com/meddesk/meddesk/backend/internal/platform/db"
 	"github.com/meddesk/meddesk/backend/internal/platform/health"
 	"github.com/meddesk/meddesk/backend/internal/platform/postgres"
+	"github.com/meddesk/meddesk/backend/internal/school"
 	"github.com/meddesk/meddesk/backend/internal/settings"
 	"github.com/meddesk/meddesk/backend/internal/tickets"
 	"github.com/meddesk/meddesk/backend/internal/users"
@@ -76,13 +77,14 @@ func run(healthcheck bool) int {
 	knowledgeService := knowledge.NewService(knowledge.NewRepository(pool))
 	knowledgeHandler := knowledge.NewHandler(knowledgeService, guard)
 	ticketsHandler := tickets.NewHandler(tickets.NewService(tickets.NewRepository(pool), knowledgeService), guard)
+	schoolHandler := school.NewHandler(school.NewService(school.NewRepository(pool)), guard)
 	settingsHandler := settings.NewHandler(settings.NewService(settings.NewRepository(pool)), guard)
 	analyticsHandler := analytics.NewHandler(analytics.NewService(analytics.NewRepository(pool)), guard)
 	auditHandler := audit.NewHandler(audit.NewService(audit.NewRepository(pool)), guard)
 	mediaHandler := media.NewHandler(media.NewService(media.NewRepository(pool), files, media.Options{MaxImageBytes: 10 << 20, MaxVideoBytes: cfg.MediaMaxVideoBytes}), guard)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress,
-		Handler:           handler.RouterWithMedia(logger, cfg.RequestTimeout, cfg.MediaUploadTimeout, cfg.MediaStreamTimeout, authHandler.RegisterRoutes, usersHandler.RegisterRoutes, departmentsHandler.RegisterRoutes, knowledgeHandler.RegisterRoutes, mediaHandler.RegisterRoutes, ticketsHandler.RegisterRoutes, settingsHandler.RegisterRoutes, analyticsHandler.RegisterRoutes, auditHandler.RegisterRoutes),
+		Handler:           handler.RouterWithMedia(logger, cfg.RequestTimeout, cfg.MediaUploadTimeout, cfg.MediaStreamTimeout, authHandler.RegisterRoutes, usersHandler.RegisterRoutes, departmentsHandler.RegisterRoutes, knowledgeHandler.RegisterRoutes, mediaHandler.RegisterRoutes, ticketsHandler.RegisterRoutes, settingsHandler.RegisterRoutes, analyticsHandler.RegisterRoutes, auditHandler.RegisterRoutes, schoolHandler.RegisterRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       cfg.RequestTimeout,
 		WriteTimeout:      cfg.RequestTimeout + 5*time.Second,

@@ -8,22 +8,30 @@ import { useErrorMessage, useToast } from '../lib/notifications'
 import { cn } from '../lib/utils'
 import { Button } from './ui/button'
 import { hasStaffRole } from '../lib/knowledge'
+import { useSchoolAccess } from '../lib/school'
 import { useSettings } from '../lib/settings'
 
 function Brand() {
   const { t } = useLocale()
   const settings = useSettings()
-  return <Link className="brand" to="/" aria-label="MedDesk"><span className="brand-mark"><Plus size={26} strokeWidth={3} aria-hidden="true" /></span><span><span className="brand-name">MedDesk<span className="brand-dot">.</span></span><span className="brand-subtitle" title={settings.data?.settings.clinic_name}>{settings.data?.settings.clinic_name ?? t.clinic}</span></span></Link>
+  const inSchool = useLocation().pathname.startsWith('/school')
+  const { locale } = useLocale()
+  return <Link className="brand" to="/" aria-label="MedDesk"><span className="brand-mark"><Plus size={26} strokeWidth={3} aria-hidden="true" /></span><span><span className="brand-name">MedDesk<span className="brand-dot">.</span></span><span className="brand-subtitle" title={inSchool ? undefined : settings.data?.settings.clinic_name}>{inSchool ? (locale === 'kk' ? 'Мектеп · IT қызметі' : 'Школа · IT-служба') : settings.data?.settings.clinic_name ?? t.clinic}</span></span></Link>
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useLocale()
   const { user } = useAuth()
+  const school = useSchoolAccess()
+  const inSchool = useLocation().pathname.startsWith('/school')
+  const { locale } = useLocale()
   const linkClass = ({ isActive }: { isActive: boolean }) => cn('nav-link', isActive && 'active')
   return <><Brand /><div className="workspace-label">{t.workspace}</div><nav aria-label={t.mainNavigation} className="sidebar-nav">
-    {user ? <><NavLink to="/" end onClick={onNavigate} className={linkClass}><LayoutDashboard size={19} aria-hidden="true" />{t.overview}<ChevronRight className="nav-chevron" size={15} aria-hidden="true" /></NavLink><NavLink to="/tickets" onClick={onNavigate} className={linkClass}><Ticket size={19} aria-hidden="true" />{t.tickets}</NavLink><NavLink to="/knowledge" onClick={onNavigate} className={linkClass}><BookOpen size={19} aria-hidden="true" />{t.knowledge}</NavLink>{hasStaffRole(user.role) && <NavLink to="/engineer/knowledge" onClick={onNavigate} className={linkClass}><BookOpen size={19} aria-hidden="true" />{t.knowledgeManage}</NavLink>}<NavLink to="/profile" onClick={onNavigate} className={linkClass}><UserRound size={19} aria-hidden="true" />{t.profile}</NavLink>{user.role === 'ADMIN' && <><NavLink to="/admin/users" onClick={onNavigate} className={linkClass}><Users size={19} aria-hidden="true" />{t.users}</NavLink><NavLink to="/admin/departments" onClick={onNavigate} className={linkClass}><Building2 size={19} aria-hidden="true" />{t.departments}</NavLink><NavLink to="/admin/categories" onClick={onNavigate} className={linkClass}><BookOpen size={19} aria-hidden="true" />{t.categories}</NavLink></>}</> : <NavLink to="/login" onClick={onNavigate} className={linkClass}><LogIn size={19} aria-hidden="true" />{t.login}</NavLink>}
-    {user && hasStaffRole(user.role) && <NavLink to="/analytics" onClick={onNavigate} className={linkClass}><Activity size={19} aria-hidden="true" />{t.analytics}</NavLink>}
-    {user?.role === 'ADMIN' && <><NavLink to="/admin/audit" onClick={onNavigate} className={linkClass}><ScrollText size={19} aria-hidden="true" />{t.audit}</NavLink><NavLink to="/admin/settings" onClick={onNavigate} className={linkClass}><Settings2 size={19} aria-hidden="true" />{t.settings}</NavLink></>}
+ {school.data?.allowed && <NavLink to="/school" onClick={onNavigate} className={linkClass}><Building2 size={19} aria-hidden="true" />{locale === 'kk' ? 'Мектеп · жеке кеңістік' : 'Школа · личное пространство'}</NavLink>}
+    {inSchool && <NavLink to="/" onClick={onNavigate} className={linkClass}><Building2 size={19} aria-hidden="true" />{locale === 'kk' ? 'Емхана кеңістігіне оралу' : 'Вернуться в поликлинику'}</NavLink>}
+    {!inSchool && (user ? <><NavLink to="/" end onClick={onNavigate} className={linkClass}><LayoutDashboard size={19} aria-hidden="true" />{t.overview}<ChevronRight className="nav-chevron" size={15} aria-hidden="true" /></NavLink><NavLink to="/tickets" onClick={onNavigate} className={linkClass}><Ticket size={19} aria-hidden="true" />{t.tickets}</NavLink><NavLink to="/knowledge" onClick={onNavigate} className={linkClass}><BookOpen size={19} aria-hidden="true" />{t.knowledge}</NavLink>{hasStaffRole(user.role) && <NavLink to="/engineer/knowledge" onClick={onNavigate} className={linkClass}><BookOpen size={19} aria-hidden="true" />{t.knowledgeManage}</NavLink>}<NavLink to="/profile" onClick={onNavigate} className={linkClass}><UserRound size={19} aria-hidden="true" />{t.profile}</NavLink>{user.role === 'ADMIN' && <><NavLink to="/admin/users" onClick={onNavigate} className={linkClass}><Users size={19} aria-hidden="true" />{t.users}</NavLink><NavLink to="/admin/departments" onClick={onNavigate} className={linkClass}><Building2 size={19} aria-hidden="true" />{t.departments}</NavLink><NavLink to="/admin/categories" onClick={onNavigate} className={linkClass}><BookOpen size={19} aria-hidden="true" />{t.categories}</NavLink></>}</> : <NavLink to="/login" onClick={onNavigate} className={linkClass}><LogIn size={19} aria-hidden="true" />{t.login}</NavLink>)}
+    {!inSchool && user && hasStaffRole(user.role) && <NavLink to="/analytics" onClick={onNavigate} className={linkClass}><Activity size={19} aria-hidden="true" />{t.analytics}</NavLink>}
+    {!inSchool && user?.role === 'ADMIN' && <><NavLink to="/admin/audit" onClick={onNavigate} className={linkClass}><ScrollText size={19} aria-hidden="true" />{t.audit}</NavLink><NavLink to="/admin/settings" onClick={onNavigate} className={linkClass}><Settings2 size={19} aria-hidden="true" />{t.settings}</NavLink></>}
   </nav>
     <div className="sidebar-bottom"><div className="sidebar-note"><CircleHelp size={20} aria-hidden="true" /><p>{t.privacyTitle}</p><span>{t.buildFooter}</span></div><div className="signed-out"><span className="signed-out-icon">{user ? <UserRound size={15} aria-hidden="true" /> : <LockKeyhole size={15} aria-hidden="true" />}</span><span>{user?.display_name ?? t.notSignedIn}</span></div></div>
   </>
@@ -37,7 +45,7 @@ export function Shell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const { pathname } = useLocation()
-  const names: Record<string, string> = { '/login': t.login, '/profile': t.profile, '/admin/users': t.users, '/admin/departments': t.departments, '/admin/categories': t.categories, '/admin/audit': t.audit, '/admin/settings': t.settings, '/analytics': t.analytics, '/knowledge': t.knowledge, '/search': t.searchResults, '/engineer/knowledge': t.knowledgeManage, '/tickets': t.tickets, '/tickets/new': t.newTicket, '/engineer/tickets': t.tickets }
+  const names: Record<string, string> = { '/school': locale === 'kk' ? 'Мектеп' : 'Школа', '/login': t.login, '/profile': t.profile, '/admin/users': t.users, '/admin/departments': t.departments, '/admin/categories': t.categories, '/admin/audit': t.audit, '/admin/settings': t.settings, '/analytics': t.analytics, '/knowledge': t.knowledge, '/search': t.searchResults, '/engineer/knowledge': t.knowledgeManage, '/tickets': t.tickets, '/tickets/new': t.newTicket, '/engineer/tickets': t.tickets }
   const pageName = names[pathname] ?? (pathname.startsWith('/tickets/') ? t.tickets : pathname.startsWith('/engineer/knowledge') ? t.knowledgeManage : pathname.startsWith('/knowledge/') ? t.knowledge : t.overview)
   const logout = async () => {
     setLoggingOut(true)

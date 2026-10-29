@@ -82,3 +82,7 @@ Migration 1 creates the base tables, constraints, indexes, timestamp triggers, s
 Staff reports and administrator audit reads use a read-only repeatable-read snapshot and recheck current actor authority. SQL separates view and feedback aggregates to prevent join multiplication. Ticket metrics describe the selected creation cohort’s current state; feedback/views retain their existing current user-department/article-category relationship. No historic department membership snapshot is fabricated. Default reporting dates resolve inside the same snapshot using configured timezone. Daily rows include zero-count days.
 
 Audit browsing supports bounded date/actor/action/entity filters, stable time/ID ordering and pagination. Stored JSON is not trusted: responses keep only action-specific correctly typed UUIDs, enums, flags, counters and settings-field names. Unknown actions expose no metadata. No audit mutation endpoint exists. Restricted append-only runtime database privileges remain a deployment requirement.
+
+## Migration 6: private school workspace
+
+`school_workspace` binds a singleton to one existing account (no automatic grant). `school_assets` holds device inventory with optional inet addresses and version checks. `school_tickets` has independent numbering, status, priority, room, requester, category, device FK, lesson disruption and resolution timestamps. `school_history` stores private change metadata transactionally. None of these records join clinic reporting. Down migration deletes school data and is only for disposable tests.

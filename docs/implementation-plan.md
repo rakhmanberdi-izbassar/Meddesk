@@ -116,3 +116,11 @@ The five planned application phases are implemented. Clinic production rollout r
 - Changed files, verification commands, current limitations, and next phase are documented.
 - No production credentials, patient data, fabricated statistics, or incomplete feature claims are introduced.
 - Stop at the requested phase boundary; begin the next phase when requested.
+
+## Private school workspace delivery
+
+Implemented a private owner-only school module, separate from clinic records and reporting: device inventory (including network and surveillance equipment), device name/inventory search, linked incident history, requests, status transitions, version checks, private transactional history and bilingual navigation. Migration 6 grants no automatic owner. Clinic account administration cannot reset or edit another account that owns the private workspace.
+
+Verification uses backend unit/handler tests, the school PostgreSQL integration scenario, the full migration/integration script, frontend component tests and the production frontend build. Activation requires migration 6, deployment and explicit assignment of the existing owner account by a trusted database operator. See `school-workspace.md` for commands and supported boundaries.
+
+School employee accounts, self-submission, school knowledge articles, attachments and camera monitoring remain separate future work; the delivered workflow is a private notebook for the engineer to register requests received from school colleagues.

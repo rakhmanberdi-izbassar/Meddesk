@@ -38,12 +38,12 @@ func TestReadinessRequiresConnectivityAndExpectedCleanSchema(t *testing.T) {
 		dirty, wantError      bool
 		queryCalls            int
 	}{
-		{"ready", nil, nil, 5, false, false, 1},
-		{"database unavailable", errors.New("secret database DSN"), nil, 5, false, true, 0},
+		{"ready", nil, nil, 6, false, false, 1},
+		{"database unavailable", errors.New("secret database DSN"), nil, 6, false, true, 0},
 		{"schema missing", nil, errors.New("secret database DSN"), 0, false, true, 1},
-		{"schema behind", nil, nil, 3, false, true, 1},
-		{"schema ahead", nil, nil, 6, false, true, 1},
-		{"schema dirty", nil, nil, 5, true, true, 1},
+		{"schema behind", nil, nil, 5, false, true, 1},
+		{"schema ahead", nil, nil, 7, false, true, 1},
+		{"schema dirty", nil, nil, 6, true, true, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			pool := &pingerStub{err: tc.pingError}

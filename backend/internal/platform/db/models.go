@@ -5,6 +5,8 @@
 package db
 
 import (
+	"net/netip"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -42,6 +44,39 @@ type MediaFile struct {
 type SchemaMigration struct {
 	Version int64 `json:"version"`
 	Dirty   bool  `json:"dirty"`
+}
+
+type SchoolAsset struct {
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	Kind            string             `json:"kind"`
+	Location        string             `json:"location"`
+	Model           string             `json:"model"`
+	InventoryNumber string             `json:"inventory_number"`
+	IpAddress       *netip.Addr        `json:"ip_address"`
+	Notes           string             `json:"notes"`
+	Version         int32              `json:"version"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type SchoolTicket struct {
+	ID            pgtype.UUID        `json:"id"`
+	Number        pgtype.Int8        `json:"number"`
+	Title         string             `json:"title"`
+	Description   string             `json:"description"`
+	Requester     string             `json:"requester"`
+	Room          string             `json:"room"`
+	Category      string             `json:"category"`
+	Priority      string             `json:"priority"`
+	Status        string             `json:"status"`
+	LessonBlocked bool               `json:"lesson_blocked"`
+	AssetID       pgtype.UUID        `json:"asset_id"`
+	Resolution    string             `json:"resolution"`
+	Version       int32              `json:"version"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ResolvedAt    pgtype.Timestamptz `json:"resolved_at"`
 }
 
 type Ticket struct {
