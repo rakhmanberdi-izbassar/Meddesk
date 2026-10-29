@@ -23,6 +23,21 @@ func (q *Queries) IsPrivateWorkspaceOwner(ctx context.Context, ownerID pgtype.UU
 	return protected, err
 }
 
+const schoolAccountEvent = `-- name: SchoolAccountEvent :exec
+INSERT INTO school_account_events(actor_id,user_id,action) VALUES($1,$2,$3)
+`
+
+type SchoolAccountEventParams struct {
+	ActorID pgtype.UUID `json:"actor_id"`
+	UserID  pgtype.UUID `json:"user_id"`
+	Action  string      `json:"action"`
+}
+
+func (q *Queries) SchoolAccountEvent(ctx context.Context, arg SchoolAccountEventParams) error {
+	_, err := q.db.Exec(ctx, schoolAccountEvent, arg.ActorID, arg.UserID, arg.Action)
+	return err
+}
+
 const schoolAssetCount = `-- name: SchoolAssetCount :one
 SELECT count(*) FROM school_assets WHERE ($1::text='' OR strpos(lower(name || ' ' || location || ' ' || inventory_number),lower($1))>0)
 `
@@ -77,7 +92,7 @@ func (q *Queries) SchoolAssets(ctx context.Context, arg SchoolAssetsParams) ([]S
 }
 
 const schoolAuthorize = `-- name: SchoolAuthorize :one
-SELECT w.owner_id FROM school_workspace w JOIN users u ON u.id=w.owner_id WHERE w.owner_id=$1 AND u.is_active FOR SHARE OF w,u
+SELECT w.owner_id FROM school_workspace w JOIN users u ON u.id=w.owner_id WHERE w.owner_id=$1 AND u.is_active AND u.account_scope='CLINIC' FOR SHARE OF w,u
 `
 
 func (q *Queries) SchoolAuthorize(ctx context.Context, ownerID pgtype.UUID) (pgtype.UUID, error) {
@@ -128,8 +143,41 @@ func (q *Queries) SchoolCreateAsset(ctx context.Context, arg SchoolCreateAssetPa
 	return i, err
 }
 
+const schoolCreateMember = `-- name: SchoolCreateMember :one
+INSERT INTO users(email,display_name,password_hash,role_id,department_id,account_scope)
+VALUES($1,$2,$3,(SELECT id FROM roles WHERE code='EMPLOYEE'),NULL,'SCHOOL')
+RETURNING id,email,display_name,is_active,account_version AS version
+`
+
+type SchoolCreateMemberParams struct {
+	Email        string `json:"email"`
+	DisplayName  string `json:"display_name"`
+	PasswordHash string `json:"password_hash"`
+}
+
+type SchoolCreateMemberRow struct {
+	ID          pgtype.UUID `json:"id"`
+	Email       string      `json:"email"`
+	DisplayName string      `json:"display_name"`
+	IsActive    bool        `json:"is_active"`
+	Version     int32       `json:"version"`
+}
+
+func (q *Queries) SchoolCreateMember(ctx context.Context, arg SchoolCreateMemberParams) (SchoolCreateMemberRow, error) {
+	row := q.db.QueryRow(ctx, schoolCreateMember, arg.Email, arg.DisplayName, arg.PasswordHash)
+	var i SchoolCreateMemberRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.IsActive,
+		&i.Version,
+	)
+	return i, err
+}
+
 const schoolCreateTicket = `-- name: SchoolCreateTicket :one
-INSERT INTO school_tickets(title,description,requester,room,category,priority,lesson_blocked,asset_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at
+INSERT INTO school_tickets(title,description,requester,room,category,priority,lesson_blocked,asset_id,requester_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at, requester_id, public_reply
 `
 
 type SchoolCreateTicketParams struct {
@@ -141,6 +189,7 @@ type SchoolCreateTicketParams struct {
 	Priority      string      `json:"priority"`
 	LessonBlocked bool        `json:"lesson_blocked"`
 	AssetID       pgtype.UUID `json:"asset_id"`
+	RequesterID   pgtype.UUID `json:"requester_id"`
 }
 
 func (q *Queries) SchoolCreateTicket(ctx context.Context, arg SchoolCreateTicketParams) (SchoolTicket, error) {
@@ -153,6 +202,7 @@ func (q *Queries) SchoolCreateTicket(ctx context.Context, arg SchoolCreateTicket
 		arg.Priority,
 		arg.LessonBlocked,
 		arg.AssetID,
+		arg.RequesterID,
 	)
 	var i SchoolTicket
 	err := row.Scan(
@@ -172,6 +222,8 @@ func (q *Queries) SchoolCreateTicket(ctx context.Context, arg SchoolCreateTicket
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ResolvedAt,
+		&i.RequesterID,
+		&i.PublicReply,
 	)
 	return i, err
 }
@@ -222,8 +274,197 @@ func (q *Queries) SchoolHistory(ctx context.Context, arg SchoolHistoryParams) er
 	return err
 }
 
+const schoolMemberAuthorize = `-- name: SchoolMemberAuthorize :one
+SELECT u.id,u.display_name FROM users u CROSS JOIN school_workspace w WHERE u.id=$1 AND u.account_scope='SCHOOL' AND u.is_active FOR SHARE OF u,w
+`
+
+type SchoolMemberAuthorizeRow struct {
+	ID          pgtype.UUID `json:"id"`
+	DisplayName string      `json:"display_name"`
+}
+
+func (q *Queries) SchoolMemberAuthorize(ctx context.Context, id pgtype.UUID) (SchoolMemberAuthorizeRow, error) {
+	row := q.db.QueryRow(ctx, schoolMemberAuthorize, id)
+	var i SchoolMemberAuthorizeRow
+	err := row.Scan(&i.ID, &i.DisplayName)
+	return i, err
+}
+
+const schoolMemberCount = `-- name: SchoolMemberCount :one
+SELECT count(*) FROM users WHERE account_scope='SCHOOL'
+`
+
+func (q *Queries) SchoolMemberCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, schoolMemberCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const schoolMembers = `-- name: SchoolMembers :many
+SELECT id,email,display_name,is_active,account_version AS version FROM users WHERE account_scope='SCHOOL' ORDER BY created_at DESC,id LIMIT $2 OFFSET $1
+`
+
+type SchoolMembersParams struct {
+	PageOffset int32 `json:"page_offset"`
+	PageLimit  int32 `json:"page_limit"`
+}
+
+type SchoolMembersRow struct {
+	ID          pgtype.UUID `json:"id"`
+	Email       string      `json:"email"`
+	DisplayName string      `json:"display_name"`
+	IsActive    bool        `json:"is_active"`
+	Version     int32       `json:"version"`
+}
+
+func (q *Queries) SchoolMembers(ctx context.Context, arg SchoolMembersParams) ([]SchoolMembersRow, error) {
+	rows, err := q.db.Query(ctx, schoolMembers, arg.PageOffset, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SchoolMembersRow{}
+	for rows.Next() {
+		var i SchoolMembersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.DisplayName,
+			&i.IsActive,
+			&i.Version,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const schoolMyTicket = `-- name: SchoolMyTicket :one
+SELECT id,number,title,description,room,category,priority,status,lesson_blocked,public_reply,created_at,updated_at,resolved_at
+FROM school_tickets WHERE requester_id=$1 AND id=$2
+`
+
+type SchoolMyTicketParams struct {
+	ActorID  pgtype.UUID `json:"actor_id"`
+	TicketID pgtype.UUID `json:"ticket_id"`
+}
+
+type SchoolMyTicketRow struct {
+	ID            pgtype.UUID        `json:"id"`
+	Number        pgtype.Int8        `json:"number"`
+	Title         string             `json:"title"`
+	Description   string             `json:"description"`
+	Room          string             `json:"room"`
+	Category      string             `json:"category"`
+	Priority      string             `json:"priority"`
+	Status        string             `json:"status"`
+	LessonBlocked bool               `json:"lesson_blocked"`
+	PublicReply   string             `json:"public_reply"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ResolvedAt    pgtype.Timestamptz `json:"resolved_at"`
+}
+
+func (q *Queries) SchoolMyTicket(ctx context.Context, arg SchoolMyTicketParams) (SchoolMyTicketRow, error) {
+	row := q.db.QueryRow(ctx, schoolMyTicket, arg.ActorID, arg.TicketID)
+	var i SchoolMyTicketRow
+	err := row.Scan(
+		&i.ID,
+		&i.Number,
+		&i.Title,
+		&i.Description,
+		&i.Room,
+		&i.Category,
+		&i.Priority,
+		&i.Status,
+		&i.LessonBlocked,
+		&i.PublicReply,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ResolvedAt,
+	)
+	return i, err
+}
+
+const schoolMyTicketCount = `-- name: SchoolMyTicketCount :one
+SELECT count(*) FROM school_tickets WHERE requester_id=$1
+`
+
+func (q *Queries) SchoolMyTicketCount(ctx context.Context, requesterID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, schoolMyTicketCount, requesterID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const schoolMyTickets = `-- name: SchoolMyTickets :many
+SELECT id,number,title,description,room,category,priority,status,lesson_blocked,public_reply,created_at,updated_at,resolved_at
+FROM school_tickets WHERE requester_id=$1 ORDER BY created_at DESC LIMIT $3 OFFSET $2
+`
+
+type SchoolMyTicketsParams struct {
+	ActorID    pgtype.UUID `json:"actor_id"`
+	PageOffset int32       `json:"page_offset"`
+	PageLimit  int32       `json:"page_limit"`
+}
+
+type SchoolMyTicketsRow struct {
+	ID            pgtype.UUID        `json:"id"`
+	Number        pgtype.Int8        `json:"number"`
+	Title         string             `json:"title"`
+	Description   string             `json:"description"`
+	Room          string             `json:"room"`
+	Category      string             `json:"category"`
+	Priority      string             `json:"priority"`
+	Status        string             `json:"status"`
+	LessonBlocked bool               `json:"lesson_blocked"`
+	PublicReply   string             `json:"public_reply"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ResolvedAt    pgtype.Timestamptz `json:"resolved_at"`
+}
+
+func (q *Queries) SchoolMyTickets(ctx context.Context, arg SchoolMyTicketsParams) ([]SchoolMyTicketsRow, error) {
+	rows, err := q.db.Query(ctx, schoolMyTickets, arg.ActorID, arg.PageOffset, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SchoolMyTicketsRow{}
+	for rows.Next() {
+		var i SchoolMyTicketsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Number,
+			&i.Title,
+			&i.Description,
+			&i.Room,
+			&i.Category,
+			&i.Priority,
+			&i.Status,
+			&i.LessonBlocked,
+			&i.PublicReply,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ResolvedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const schoolOwner = `-- name: SchoolOwner :one
-SELECT EXISTS(SELECT 1 FROM school_workspace w JOIN users u ON u.id=w.owner_id WHERE w.owner_id=$1 AND u.is_active) AS allowed
+SELECT EXISTS(SELECT 1 FROM users u CROSS JOIN school_workspace w WHERE u.id=$1 AND u.is_active AND (w.owner_id=u.id OR u.account_scope='SCHOOL')) AS allowed
 `
 
 func (q *Queries) SchoolOwner(ctx context.Context, actorID pgtype.UUID) (bool, error) {
@@ -250,7 +491,7 @@ func (q *Queries) SchoolTicketCount(ctx context.Context, arg SchoolTicketCountPa
 }
 
 const schoolTicketForUpdate = `-- name: SchoolTicketForUpdate :one
-SELECT id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at FROM school_tickets WHERE id=$1 FOR UPDATE
+SELECT id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at, requester_id, public_reply FROM school_tickets WHERE id=$1 FOR UPDATE
 `
 
 func (q *Queries) SchoolTicketForUpdate(ctx context.Context, id pgtype.UUID) (SchoolTicket, error) {
@@ -273,12 +514,14 @@ func (q *Queries) SchoolTicketForUpdate(ctx context.Context, id pgtype.UUID) (Sc
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ResolvedAt,
+		&i.RequesterID,
+		&i.PublicReply,
 	)
 	return i, err
 }
 
 const schoolTickets = `-- name: SchoolTickets :many
-SELECT id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at FROM school_tickets WHERE ($1::text='' OR status=$1) AND ($2::text='' OR asset_id::text=$2) ORDER BY created_at DESC LIMIT $4 OFFSET $3
+SELECT id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at, requester_id, public_reply FROM school_tickets WHERE ($1::text='' OR status=$1) AND ($2::text='' OR asset_id::text=$2) ORDER BY created_at DESC LIMIT $4 OFFSET $3
 `
 
 type SchoolTicketsParams struct {
@@ -319,6 +562,8 @@ func (q *Queries) SchoolTickets(ctx context.Context, arg SchoolTicketsParams) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ResolvedAt,
+			&i.RequesterID,
+			&i.PublicReply,
 		); err != nil {
 			return nil, err
 		}
@@ -375,8 +620,49 @@ func (q *Queries) SchoolUpdateAsset(ctx context.Context, arg SchoolUpdateAssetPa
 	return i, err
 }
 
+const schoolUpdateMember = `-- name: SchoolUpdateMember :one
+UPDATE users SET display_name=$1,is_active=$2,password_hash=COALESCE($3::text,password_hash),account_version=account_version+1
+WHERE id=$4 AND account_scope='SCHOOL' AND account_version=$5
+RETURNING id,email,display_name,is_active,account_version AS version
+`
+
+type SchoolUpdateMemberParams struct {
+	DisplayName     string      `json:"display_name"`
+	IsActive        bool        `json:"is_active"`
+	PasswordHash    pgtype.Text `json:"password_hash"`
+	ID              pgtype.UUID `json:"id"`
+	ExpectedVersion int32       `json:"expected_version"`
+}
+
+type SchoolUpdateMemberRow struct {
+	ID          pgtype.UUID `json:"id"`
+	Email       string      `json:"email"`
+	DisplayName string      `json:"display_name"`
+	IsActive    bool        `json:"is_active"`
+	Version     int32       `json:"version"`
+}
+
+func (q *Queries) SchoolUpdateMember(ctx context.Context, arg SchoolUpdateMemberParams) (SchoolUpdateMemberRow, error) {
+	row := q.db.QueryRow(ctx, schoolUpdateMember,
+		arg.DisplayName,
+		arg.IsActive,
+		arg.PasswordHash,
+		arg.ID,
+		arg.ExpectedVersion,
+	)
+	var i SchoolUpdateMemberRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.IsActive,
+		&i.Version,
+	)
+	return i, err
+}
+
 const schoolUpdateTicket = `-- name: SchoolUpdateTicket :one
-UPDATE school_tickets SET status=$2,priority=$3,resolution=$4,version=version+1,resolved_at=CASE WHEN $2 IN ('RESOLVED','CLOSED') THEN COALESCE(resolved_at,now()) ELSE NULL END WHERE id=$1 AND version=$5 RETURNING id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at
+UPDATE school_tickets SET status=$2,priority=$3,resolution=$4,public_reply=$5,version=version+1,resolved_at=CASE WHEN $2 IN ('RESOLVED','CLOSED') THEN COALESCE(resolved_at,now()) ELSE NULL END WHERE id=$1 AND version=$6 RETURNING id, number, title, description, requester, room, category, priority, status, lesson_blocked, asset_id, resolution, version, created_at, updated_at, resolved_at, requester_id, public_reply
 `
 
 type SchoolUpdateTicketParams struct {
@@ -384,6 +670,7 @@ type SchoolUpdateTicketParams struct {
 	Status          string      `json:"status"`
 	Priority        string      `json:"priority"`
 	Resolution      string      `json:"resolution"`
+	PublicReply     string      `json:"public_reply"`
 	ExpectedVersion int32       `json:"expected_version"`
 }
 
@@ -393,6 +680,7 @@ func (q *Queries) SchoolUpdateTicket(ctx context.Context, arg SchoolUpdateTicket
 		arg.Status,
 		arg.Priority,
 		arg.Resolution,
+		arg.PublicReply,
 		arg.ExpectedVersion,
 	)
 	var i SchoolTicket
@@ -413,6 +701,8 @@ func (q *Queries) SchoolUpdateTicket(ctx context.Context, arg SchoolUpdateTicket
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ResolvedAt,
+		&i.RequesterID,
+		&i.PublicReply,
 	)
 	return i, err
 }

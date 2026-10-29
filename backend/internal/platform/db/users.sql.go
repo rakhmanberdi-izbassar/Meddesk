@@ -13,7 +13,7 @@ import (
 
 const countActiveAdministrators = `-- name: CountActiveAdministrators :one
 SELECT count(*) FROM users u JOIN roles r ON r.id = u.role_id
-WHERE u.is_active AND r.code = 'ADMIN'
+WHERE u.account_scope='CLINIC' AND u.is_active AND r.code = 'ADMIN'
 `
 
 func (q *Queries) CountActiveAdministrators(ctx context.Context) (int64, error) {
@@ -25,7 +25,7 @@ func (q *Queries) CountActiveAdministrators(ctx context.Context) (int64, error) 
 
 const countManagedUsers = `-- name: CountManagedUsers :one
 SELECT count(*) FROM users u JOIN roles r ON r.id = u.role_id
-WHERE ($1::text = '' OR strpos(lower(u.email || ' ' || u.display_name), lower($1)) > 0)
+WHERE u.account_scope='CLINIC' AND ($1::text = '' OR strpos(lower(u.email || ' ' || u.display_name), lower($1)) > 0)
   AND ($2::text = '' OR r.code = $2)
   AND ($3::boolean IS NULL OR u.is_active = $3)
 `
@@ -75,7 +75,7 @@ const getManagedUser = `-- name: GetManagedUser :one
 SELECT u.id, u.email, u.display_name, r.code AS role, u.department_id,
        d.name AS department_name, u.is_active
 FROM users u JOIN roles r ON r.id = u.role_id JOIN departments d ON d.id = u.department_id
-WHERE u.id = $1
+WHERE u.account_scope='CLINIC' AND u.id = $1
 `
 
 type GetManagedUserRow struct {
@@ -107,7 +107,7 @@ const getManagedUserForUpdate = `-- name: GetManagedUserForUpdate :one
 SELECT u.id, u.email, u.display_name, r.code AS role, u.department_id,
        d.name AS department_name, u.is_active
 FROM users u JOIN roles r ON r.id = u.role_id JOIN departments d ON d.id = u.department_id
-WHERE u.id = $1 FOR UPDATE OF u
+WHERE u.account_scope='CLINIC' AND u.id = $1 FOR UPDATE OF u
 `
 
 type GetManagedUserForUpdateRow struct {
@@ -163,7 +163,7 @@ const listManagedUsers = `-- name: ListManagedUsers :many
 SELECT u.id, u.email, u.display_name, r.code AS role, u.department_id,
        d.name AS department_name, u.is_active
 FROM users u JOIN roles r ON r.id = u.role_id JOIN departments d ON d.id = u.department_id
-WHERE ($1::text = '' OR strpos(lower(u.email || ' ' || u.display_name), lower($1)) > 0)
+WHERE u.account_scope='CLINIC' AND ($1::text = '' OR strpos(lower(u.email || ' ' || u.display_name), lower($1)) > 0)
   AND ($2::text = '' OR r.code = $2)
   AND ($3::boolean IS NULL OR u.is_active = $3)
 ORDER BY u.created_at DESC, u.id LIMIT $5 OFFSET $4
@@ -244,7 +244,7 @@ UPDATE users SET email = $1, display_name = $2,
     role_id = (SELECT id FROM roles WHERE code = $3),
     department_id = $4, is_active = $5,
     password_hash = COALESCE($6::text, password_hash)
-WHERE users.id = $7
+WHERE users.account_scope='CLINIC' AND users.id = $7
 `
 
 type UpdateManagedUserParams struct {

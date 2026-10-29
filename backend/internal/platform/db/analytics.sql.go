@@ -217,7 +217,7 @@ func (q *Queries) AnalyticsFeedbackTrend(ctx context.Context, arg AnalyticsFeedb
 
 const analyticsFilterAssignees = `-- name: AnalyticsFilterAssignees :many
 SELECT DISTINCT u.id, u.display_name FROM users u JOIN roles r ON r.id = u.role_id
-WHERE r.code IN ('IT_ENGINEER','ADMIN') OR EXISTS (SELECT 1 FROM tickets t WHERE t.assignee_id = u.id)
+WHERE u.account_scope='CLINIC' AND (r.code IN ('IT_ENGINEER','ADMIN') OR EXISTS (SELECT 1 FROM tickets t WHERE t.assignee_id = u.id))
 ORDER BY u.display_name, u.id
 `
 

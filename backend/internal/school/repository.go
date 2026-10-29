@@ -39,6 +39,12 @@ func (r *Repository) Access(ctx context.Context, actor string) (bool, error) {
 // Every operation checks explicit ownership inside the same transaction. Clinic
 // ADMIN never bypasses this check. All rows in this module are school-only.
 func (r *Repository) authorized(ctx context.Context, actor string, fn func(*db.Queries) error) error {
+	return r.transaction(ctx, actor, false, func(q *db.Queries, _ string) error { return fn(q) })
+}
+func (r *Repository) member(ctx context.Context, actor string, fn func(*db.Queries, string) error) error {
+	return r.transaction(ctx, actor, true, fn)
+}
+func (r *Repository) transaction(ctx context.Context, actor string, member bool, fn func(*db.Queries, string) error) error {
 	id, err := uuid(actor)
 	if err != nil {
 		return ErrForbidden
@@ -49,13 +55,21 @@ func (r *Repository) authorized(ctx context.Context, actor string, fn func(*db.Q
 	}
 	defer tx.Rollback(ctx)
 	q := db.New(tx)
-	if _, err := q.SchoolAuthorize(ctx, id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
+	name := ""
+	if member {
+		record, e := q.SchoolMemberAuthorize(ctx, id)
+		err = e
+		name = record.DisplayName
+	} else {
+		_, err = q.SchoolAuthorize(ctx, id)
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrForbidden
+	}
+	if err != nil {
 		return err
 	}
-	if err = fn(q); err != nil {
+	if err = fn(q, name); err != nil {
 		var pgerr *pgconn.PgError
 		if errors.As(err, &pgerr) {
 			switch pgerr.Code {

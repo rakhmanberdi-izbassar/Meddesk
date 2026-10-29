@@ -29,7 +29,7 @@ func (r *PostgresRepository) FindUserByEmail(ctx context.Context, email string) 
 	if err != nil {
 		return Credential{}, err
 	}
-	return Credential{User: User{row.ID, row.Email, row.DisplayName, row.Role, row.DepartmentID, row.DepartmentName, row.IsActive}, PasswordHash: row.PasswordHash}, nil
+	return Credential{User: User{row.ID, row.Email, row.DisplayName, row.Role, row.DepartmentID, row.DepartmentName, row.IsActive, row.AccountScope}, PasswordHash: row.PasswordHash}, nil
 }
 func (r *PostgresRepository) FindSession(ctx context.Context, hash []byte) (Session, error) {
 	row, err := r.queries.AuthFindSession(ctx, hash)
@@ -39,7 +39,7 @@ func (r *PostgresRepository) FindSession(ctx context.Context, hash []byte) (Sess
 	if err != nil {
 		return Session{}, err
 	}
-	return Session{User: User{row.ID, row.Email, row.DisplayName, row.Role, row.DepartmentID, row.DepartmentName, row.IsActive}, CSRFHash: row.CsrfTokenHash, ExpiresAt: row.ExpiresAt.Time}, nil
+	return Session{User: User{row.ID, row.Email, row.DisplayName, row.Role, row.DepartmentID, row.DepartmentName, row.IsActive, row.AccountScope}, CSRFHash: row.CsrfTokenHash, ExpiresAt: row.ExpiresAt.Time}, nil
 }
 
 // CreateSession serializes with account changes, preventing a password reset or
@@ -82,7 +82,7 @@ func (r *PostgresRepository) CreateSession(ctx context.Context, credential Crede
 	if err := tx.Commit(ctx); err != nil {
 		return User{}, err
 	}
-	return User{user.ID, user.Email, user.DisplayName, user.Role, user.DepartmentID, user.DepartmentName, user.IsActive}, nil
+	return User{user.ID, user.Email, user.DisplayName, user.Role, user.DepartmentID, user.DepartmentName, user.IsActive, user.AccountScope}, nil
 }
 
 func (r *PostgresRepository) RevokeSession(ctx context.Context, hash []byte) error {

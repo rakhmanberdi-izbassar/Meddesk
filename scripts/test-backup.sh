@@ -56,7 +56,7 @@ task_restored=$(docker compose exec -T postgres psql -X -U backup_probe -d resto
 [[ "$task_restored" = synthetic-backup-content ]] || { echo 'Restored database data differs.' >&2; exit 1; }
 task_version=$(docker compose exec -T postgres psql -X -U backup_probe -d restore_probe -Atc \
   "SELECT version FROM schema_migrations WHERE NOT dirty")
-[[ "$task_version" = 6 ]] || { echo 'Restored schema version differs.' >&2; exit 1; }
+[[ "$task_version" = 7 ]] || { echo 'Restored schema version differs.' >&2; exit 1; }
 task_settings=$(docker compose exec -T postgres psql -X -U backup_probe -d restore_probe -Atc \
   "SELECT clinic_name || ':' || default_ticket_priority FROM application_settings")
 [[ "$task_settings" = MedDesk:MEDIUM ]] || { echo 'Restored application settings differ.' >&2; exit 1; }

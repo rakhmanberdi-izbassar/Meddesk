@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Route, Routes, Link, Navigate, Outlet } from 'react-router-dom'
+import { Route, Routes, Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Shell } from './components/Shell'
 import { Login } from './pages/Login'
 import { Button } from './components/ui/button'
@@ -34,11 +34,13 @@ function NotFound() {
 }
 
 function RequireSession() {
+  const location = useLocation()
   const auth = useAuth()
   const { t } = useLocale()
   if (auth.status === 'loading') return <div className="session-state" role="status" aria-busy="true">{t.sessionLoading}</div>
   if (auth.status === 'error') return <div className="session-state"><p role="alert">{t.sessionUnavailable}</p><Button onClick={() => void auth.refresh()}>{t.retry}</Button></div>
   if (!auth.user) return <Navigate to="/login" replace />
+  if (auth.user.account_scope === 'SCHOOL' && location.pathname !== '/school') return <Navigate to="/school" replace />
   return <Outlet key={`${auth.user.id}:${auth.user.role}`} />
 }
 

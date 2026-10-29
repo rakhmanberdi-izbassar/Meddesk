@@ -34,7 +34,7 @@ export async function fetchOperationalStatus(
 export const roleSchema = z.enum(['EMPLOYEE', 'IT_ENGINEER', 'ADMIN'])
 export type Role = z.infer<typeof roleSchema>
 export const userSchema = z.object({
-  id: z.string(), email: z.string(), display_name: z.string(), role: roleSchema,
+  id: z.string(), email: z.string(), display_name: z.string(), role: roleSchema, account_scope: z.enum(['CLINIC','SCHOOL']).optional(),
   department_id: z.string(), department_name: z.string(), is_active: z.boolean(),
 })
 export type User = z.infer<typeof userSchema>

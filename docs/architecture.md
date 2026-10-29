@@ -105,3 +105,5 @@ Production deployment still requires clinic HTTPS ingress, managed secrets, acco
 ## Private school module
 
 The school module is an isolated owner-only workspace inside the modular monolith. Explicit database ownership, rather than clinic RBAC, protects dedicated assets, tickets and history. School history stays out of clinic audit exports. Account administration protects the private owner against another clinic administrator resetting that account. See [school workspace boundaries and deployment](school-workspace.md).
+
+School employee identities now share the session system with an explicit SCHOOL scope and no clinic department. The central guard denies clinic endpoints regardless of role. School owner services and employee services enforce distinct transaction-scoped authorization; employee SQL projects only their own safe request fields. Clinic account management excludes SCHOOL records. See [school account boundaries](school-accounts.md).

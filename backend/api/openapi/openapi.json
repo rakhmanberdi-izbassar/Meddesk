@@ -10355,7 +10355,7 @@
       "get": {
         "operationId": "schoolAccess",
         "summary": "Check explicit school ownership",
-        "description": "Authenticated ownership check. Returns allowed=false for users who are not the explicit school owner; no school records are returned.",
+        "description": "Authenticated access check for the explicit owner and active school employees. owner=false for employees; allowed=false when school is unconfigured or access is absent.",
         "security": [
           {
             "CookieSession": []
@@ -11124,6 +11124,583 @@
           }
         }
       }
+    },
+    "/api/v1/school/members": {
+      "get": {
+        "operationId": "listSchoolMembers",
+        "summary": "List school employee accounts",
+        "description": "Explicit school owner only. School accounts never appear in clinic user management.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolMemberPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createSchoolMember",
+        "summary": "Create school-only employee",
+        "description": "Explicit school owner only. No public registration. Email must be globally unique. Password policy is 12–72 UTF-8 bytes.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolMember"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolMemberInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/school/members/{id}": {
+      "patch": {
+        "operationId": "updateSchoolMember",
+        "summary": "Update or deactivate school account",
+        "description": "Explicit school owner only. Uses expected version; password reset and deactivation revoke sessions in the same transaction.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version conflict or duplicate inventory number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "School record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolMember"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolMemberUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/school/requests": {
+      "get": {
+        "operationId": "listOwnSchoolRequests",
+        "summary": "List own school requests",
+        "description": "Active SCHOOL identity only. SQL filters by authenticated requester; no internal fields are returned.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolEmployeeRequestPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createOwnSchoolRequest",
+        "summary": "Submit own school request",
+        "description": "Active SCHOOL identity only. Requester is server-bound; no device access.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolEmployeeRequest"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "description": "Exact configured frontend origin. Browsers send this automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session-bound token returned by login or /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolEmployeeRequestInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/school/requests/{id}": {
+      "get": {
+        "operationId": "getOwnSchoolRequest",
+        "summary": "Read own school request",
+        "description": "Active SCHOOL identity only. Another requester’s ID returns 404. Private device IDs and internal resolution are never returned.",
+        "security": [
+          {
+            "CookieSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit school owner required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Operation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolEmployeeRequest"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "School record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -11228,14 +11805,34 @@
             ]
           },
           "department_id": {
-            "type": "string",
-            "format": "uuid"
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "minLength": 1
+              },
+              {
+                "type": "string",
+                "enum": [
+                  ""
+                ]
+              }
+            ],
+            "description": "Clinic department UUID; empty for a school-only identity."
           },
           "department_name": {
             "type": "string"
           },
           "is_active": {
             "type": "boolean"
+          },
+          "account_scope": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "SCHOOL"
+            ],
+            "description": "Authentication always includes scope; school accounts are denied all clinic resources regardless of role."
           }
         },
         "required": [
@@ -13518,6 +14115,11 @@
           "version": {
             "type": "integer",
             "minimum": 1
+          },
+          "public_reply": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Employee-visible answer; resolution remains private to owner."
           }
         },
         "required": [
@@ -13761,6 +14363,16 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "public_reply": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "requester_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "School requester, null for legacy/manual owner requests."
           }
         },
         "required": [
@@ -13812,11 +14424,297 @@
       "SchoolAccess": {
         "type": "object",
         "required": [
-          "allowed"
+          "allowed",
+          "owner"
         ],
         "properties": {
           "allowed": {
             "type": "boolean"
+          },
+          "owner": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SchoolMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "is_active",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "SchoolMemberPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchoolMember"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "SchoolMemberInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "display_name",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "maxLength": 72,
+            "description": "12–72 UTF-8 bytes, hashed using existing bcrypt policy; never returned or logged."
+          }
+        }
+      },
+      "SchoolMemberUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "display_name",
+          "is_active",
+          "version"
+        ],
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "maxLength": 72,
+            "description": "12–72 UTF-8 bytes, hashed using existing bcrypt policy; never returned or logged."
+          }
+        },
+        "description": "Email, role, account scope and department cannot be changed. Password resets and deactivation revoke sessions atomically. Omit password to preserve it."
+      },
+      "SchoolEmployeeRequestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "description",
+          "room",
+          "category",
+          "priority"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "COMPUTERS",
+              "PRINTING",
+              "NETWORK",
+              "SURVEILLANCE",
+              "CLASSROOM",
+              "ACCOUNTS",
+              "OTHER"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "lesson_blocked": {
+            "type": "boolean"
+          }
+        },
+        "description": "Server binds requester identity. Device IDs, requester identity, status and private resolution are rejected as unknown fields."
+      },
+      "SchoolEmployeeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "COMPUTERS",
+              "PRINTING",
+              "NETWORK",
+              "SURVEILLANCE",
+              "CLASSROOM",
+              "ACCOUNTS",
+              "OTHER"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "WAITING_FOR_USER",
+              "RESOLVED",
+              "CLOSED"
+            ]
+          },
+          "lesson_blocked": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "public_reply": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "description",
+          "room",
+          "category",
+          "priority",
+          "status",
+          "lesson_blocked",
+          "created_at",
+          "updated_at",
+          "resolved_at",
+          "public_reply"
+        ]
+      },
+      "SchoolEmployeeRequestPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchoolEmployeeRequest"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
           }
         }
       }

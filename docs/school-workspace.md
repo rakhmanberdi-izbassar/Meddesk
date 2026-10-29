@@ -1,6 +1,6 @@
 # Private school workspace
 
-The `/school` workspace is a private engineering notebook for the school, including network and surveillance incidents. The existing clinic portal remains separate. This is deliberately not a general multi-tenant conversion: one explicit account owns one private school workspace. Clinic ADMIN and IT_ENGINEER roles do not grant school access.
+The `/school` workspace is a private engineering notebook for the school, including network and surveillance incidents. The existing clinic portal remains separate. One explicit clinic account owns one school workspace; migration 7 adds scoped school employee accounts. This is not a general multi-tenant conversion. Clinic ADMIN and IT_ENGINEER roles do not grant school access.
 
 ## Included
 
@@ -12,13 +12,13 @@ The `/school` workspace is a private engineering notebook for the school, includ
 - Every edit uses optimistic version checks. Record changes and private history commit atomically.
 - Kazakh and Russian interface labels. User-entered incident descriptions are preserved as entered.
 
-There is no school self-registration, teacher login, public submission link, school knowledge base, attachment upload, camera feed, monitoring, password vault or deletion in this version. The owner records requests on colleagues' behalf. A school employee portal requires separate scoped identities and permissions before it can safely be added; clinic employee accounts are not reused for that purpose.
+School employee login and own-request submission are now available through migration 7; see [school accounts](school-accounts.md). Public registration, public submission links, school knowledge articles, attachments, camera feeds, monitoring, password vaults and deletion are not provided. The owner can also record requests received by phone.
 
 ## Access and isolation
 
-Migration 000006 creates `school_workspace`, `school_assets`, `school_tickets` and `school_history`. It never auto-grants an owner. No school record is inserted into clinic tickets, departments, knowledge articles, analytics, attachments or audit exports. Private history stores actor/entity/action/version/time without ticket bodies or network details.
+Migration 000006 creates `school_workspace`, `school_assets`, `school_tickets` and `school_history`. It never auto-grants an owner. No school record is inserted into clinic tickets, departments, knowledge articles, analytics, attachments or audit exports. Private ticket history stores actor/entity/action/version/time without ticket bodies or network details. School account/authentication history is also private.
 
-Every school read/write checks the active account against the explicitly configured owner inside a database transaction. Mutation authorization locks the ownership and user rows so revocation waits for in-flight operations and blocks subsequent ones. Sidebar visibility is a convenience; the API independently enforces ownership. Even another clinic administrator gets HTTP 403.
+Owner operations check the active account against the explicitly configured owner inside a database transaction. Employee operations check active SCHOOL scope and restrict requests to the authenticated employee. Mutation authorization locks the ownership and user rows so revocation waits for in-flight operations and blocks subsequent ones. Sidebar visibility is a convenience; the API independently enforces ownership. Even another clinic administrator gets HTTP 403.
 
 Clinic user management also refuses other administrators' changes to the school owner's account, including password resets, email/role changes and deactivation. An administrator who owns the workspace can manage their own account under existing account rules. Lost-owner recovery and ownership transfer require a trusted database operator. Database operators and full database backups necessarily have access to all stored records; this boundary does not isolate against the infrastructure operator.
 
@@ -26,7 +26,7 @@ Do not enter passwords, camera footage, patient information or unnecessary perso
 
 ## Deploy and activate
 
-1. Back up the database. Apply migration **000006** with the existing migration command before deploying the new backend. Deploy both backend and frontend. Readiness requires clean version **6**.
+1. Back up the database. Apply pending migrations through **000007** with the existing migration command before deploying the new backend. Deploy both backend and frontend. Readiness requires clean version **7**.
 2. In Railway **Postgres → Console**, open PostgreSQL (the following command runs in the shell):
 
 ```bash
@@ -39,14 +39,14 @@ psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 \prompt 'School owner account email: ' school_owner_email
 BEGIN;
 INSERT INTO school_workspace (owner_id)
-VALUES ((SELECT id FROM users WHERE lower(email) = lower(:'school_owner_email') AND is_active));
+VALUES ((SELECT id FROM users WHERE lower(email) = lower(:'school_owner_email') AND is_active AND account_scope='CLINIC'));
 SELECT u.email FROM school_workspace w JOIN users u ON u.id = w.owner_id;
 COMMIT;
 ```
 
 An unknown/inactive email fails the NOT NULL constraint; an already configured owner fails the singleton constraint. Both leave existing ownership unchanged. If a transaction fails interactively, run `ROLLBACK;` before another attempt. This deliberately does not silently transfer ownership.
 
-4. Reload the owner's session page. The sidebar shows **Мектеп · жеке кеңістік / Школа · личное пространство**. Other users see no school link. Check `/api/v1/ready` returns `{"status":"ready"}`.
+4. Reload the owner's session page. The sidebar shows **Мектеп · жеке кеңістік / Школа · личное пространство**. Other clinic users see no school link. School employees see only their own-request portal. Check `/api/v1/ready` returns `{"status":"ready"}`.
 5. Add a device and a test request. Verify another clinic admin cannot access `/school` or `/api/v1/school/tickets`. School requests must not appear in clinic ticket lists or analytics.
 
 To revoke access, a trusted database operator can execute `DELETE FROM school_workspace;`. This retains all school records. Do not run the down migration on production; it deletes school data.

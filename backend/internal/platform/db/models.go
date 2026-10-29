@@ -77,6 +77,8 @@ type SchoolTicket struct {
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 	ResolvedAt    pgtype.Timestamptz `json:"resolved_at"`
+	RequesterID   pgtype.UUID        `json:"requester_id"`
+	PublicReply   string             `json:"public_reply"`
 }
 
 type Ticket struct {

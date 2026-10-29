@@ -19,7 +19,7 @@ export function Login() {
   const schema = z.object({ email: z.string().trim().email(t.emailInvalid).max(254, t.emailInvalid), password: z.string().min(1, t.passwordRequired) })
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } })
   if (auth.status === 'loading') return <div className="session-state" role="status" aria-busy="true">{t.sessionLoading}</div>
-  if (auth.user) return <Navigate to="/" replace />
+  if (auth.user) return <Navigate to={auth.user.account_scope === 'SCHOOL' ? '/school' : '/'} replace />
   const submit = form.handleSubmit(async values => {
     setError(null)
     try { await auth.login(values.email, values.password) }

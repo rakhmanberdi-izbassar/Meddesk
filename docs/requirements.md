@@ -88,3 +88,7 @@ Phase 4 checks passed: backend race/vet, 76 frontend tests/type checks/build, tw
 Phase 5 checks passed: backend race/vet, 94 frontend tests/type/build, exact reporting and complete multi-role SQL/HTTP workflows in two full disposable PostgreSQL suites, migration 1–4 up/down/up, sqlc/Compose/OpenAPI validation, isolated backup/restore and deployed role-aware smoke/seed preservation. Browser visual acceptance was unavailable; see the [Phase 5 delivery report](phase5-report.md).
 
 Deliverables include README, environment example, Compose, Makefile, migrations, safe seed commands, OpenAPI, design documents, and CI. `make test` runs Go race/vet and frontend type checks/tests/build; `make test-integration` uses a disposable PostgreSQL database, repeats the suite after migration down/up, and never destroys project data. `make generate`, `make compose-check`, and `make smoke` verify query generation, infrastructure configuration, and the running gateway/API.
+
+## School employee access
+
+The explicit school owner creates, updates, resets and deactivates school-only employee accounts. Employees log in normally, submit requests and see only their own requests and public engineer replies. They cannot access clinic resources, school device inventories, private repair notes or account management. Ownership is inferred from authenticated IDs and never accepted from request payloads.

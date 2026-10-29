@@ -55,10 +55,10 @@ func (q *Queries) AuthDeleteSession(ctx context.Context, tokenHash []byte) (stri
 
 const authFindSession = `-- name: AuthFindSession :one
 SELECT u.id::text AS id, u.email, u.display_name, r.code AS role,
-       u.department_id::text AS department_id, d.name AS department_name,
-       u.is_active, s.csrf_token_hash, s.expires_at
+       COALESCE(u.department_id::text,'')::text AS department_id, COALESCE(d.name,'')::text AS department_name,
+       u.account_scope, u.is_active, s.csrf_token_hash, s.expires_at
 FROM sessions s JOIN users u ON u.id = s.user_id JOIN roles r ON r.id = u.role_id
-JOIN departments d ON d.id = u.department_id
+LEFT JOIN departments d ON d.id = u.department_id
 WHERE s.token_hash = $1 AND s.expires_at > now() AND u.is_active
 `
 
@@ -69,6 +69,7 @@ type AuthFindSessionRow struct {
 	Role           string             `json:"role"`
 	DepartmentID   string             `json:"department_id"`
 	DepartmentName string             `json:"department_name"`
+	AccountScope   string             `json:"account_scope"`
 	IsActive       bool               `json:"is_active"`
 	CsrfTokenHash  []byte             `json:"csrf_token_hash"`
 	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
@@ -84,6 +85,7 @@ func (q *Queries) AuthFindSession(ctx context.Context, tokenHash []byte) (AuthFi
 		&i.Role,
 		&i.DepartmentID,
 		&i.DepartmentName,
+		&i.AccountScope,
 		&i.IsActive,
 		&i.CsrfTokenHash,
 		&i.ExpiresAt,
@@ -104,9 +106,9 @@ func (q *Queries) AuthFindSessionOwner(ctx context.Context, tokenHash []byte) (p
 
 const authFindUserByEmail = `-- name: AuthFindUserByEmail :one
 SELECT u.id::text AS id, u.email, u.display_name, r.code AS role,
-       u.department_id::text AS department_id, d.name AS department_name,
-       u.is_active, u.password_hash
-FROM users u JOIN roles r ON r.id = u.role_id JOIN departments d ON d.id = u.department_id
+       COALESCE(u.department_id::text,'')::text AS department_id, COALESCE(d.name,'')::text AS department_name,
+       u.account_scope, u.is_active, u.password_hash
+FROM users u JOIN roles r ON r.id = u.role_id LEFT JOIN departments d ON d.id = u.department_id
 WHERE lower(u.email) = $1
 `
 
@@ -117,6 +119,7 @@ type AuthFindUserByEmailRow struct {
 	Role           string `json:"role"`
 	DepartmentID   string `json:"department_id"`
 	DepartmentName string `json:"department_name"`
+	AccountScope   string `json:"account_scope"`
 	IsActive       bool   `json:"is_active"`
 	PasswordHash   string `json:"password_hash"`
 }
@@ -131,6 +134,7 @@ func (q *Queries) AuthFindUserByEmail(ctx context.Context, email string) (AuthFi
 		&i.Role,
 		&i.DepartmentID,
 		&i.DepartmentName,
+		&i.AccountScope,
 		&i.IsActive,
 		&i.PasswordHash,
 	)
@@ -139,9 +143,9 @@ func (q *Queries) AuthFindUserByEmail(ctx context.Context, email string) (AuthFi
 
 const authLockLoginUser = `-- name: AuthLockLoginUser :one
 SELECT u.id::text AS id, u.email, u.display_name, r.code AS role,
-       u.department_id::text AS department_id, d.name AS department_name,
-       u.is_active, u.password_hash
-FROM users u JOIN roles r ON r.id = u.role_id JOIN departments d ON d.id = u.department_id
+       COALESCE(u.department_id::text,'')::text AS department_id, COALESCE(d.name,'')::text AS department_name,
+       u.account_scope, u.is_active, u.password_hash
+FROM users u JOIN roles r ON r.id = u.role_id LEFT JOIN departments d ON d.id = u.department_id
 WHERE u.id = $1::uuid FOR UPDATE OF u
 `
 
@@ -152,6 +156,7 @@ type AuthLockLoginUserRow struct {
 	Role           string `json:"role"`
 	DepartmentID   string `json:"department_id"`
 	DepartmentName string `json:"department_name"`
+	AccountScope   string `json:"account_scope"`
 	IsActive       bool   `json:"is_active"`
 	PasswordHash   string `json:"password_hash"`
 }
@@ -166,6 +171,7 @@ func (q *Queries) AuthLockLoginUser(ctx context.Context, userID pgtype.UUID) (Au
 		&i.Role,
 		&i.DepartmentID,
 		&i.DepartmentName,
+		&i.AccountScope,
 		&i.IsActive,
 		&i.PasswordHash,
 	)
@@ -173,16 +179,20 @@ func (q *Queries) AuthLockLoginUser(ctx context.Context, userID pgtype.UUID) (Au
 }
 
 const authRecordEvent = `-- name: AuthRecordEvent :exec
-INSERT INTO audit_logs (actor_id, action, entity_type, entity_id)
-VALUES ($1::uuid, $2, 'session', $1::uuid)
+WITH clinic_event AS (
+ INSERT INTO audit_logs(actor_id,action,entity_type,entity_id)
+ SELECT id,$1,'session',id FROM users WHERE id=$2::uuid AND account_scope='CLINIC'
+)
+INSERT INTO school_account_events(actor_id,user_id,action)
+SELECT id,id,$1 FROM users WHERE id=$2::uuid AND account_scope='SCHOOL'
 `
 
 type AuthRecordEventParams struct {
-	UserID pgtype.UUID `json:"user_id"`
 	Action string      `json:"action"`
+	UserID pgtype.UUID `json:"user_id"`
 }
 
 func (q *Queries) AuthRecordEvent(ctx context.Context, arg AuthRecordEventParams) error {
-	_, err := q.db.Exec(ctx, authRecordEvent, arg.UserID, arg.Action)
+	_, err := q.db.Exec(ctx, authRecordEvent, arg.Action, arg.UserID)
 	return err
 }

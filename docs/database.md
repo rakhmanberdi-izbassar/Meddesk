@@ -86,3 +86,7 @@ Audit browsing supports bounded date/actor/action/entity filters, stable time/ID
 ## Migration 6: private school workspace
 
 `school_workspace` binds a singleton to one existing account (no automatic grant). `school_assets` holds device inventory with optional inet addresses and version checks. `school_tickets` has independent numbering, status, priority, room, requester, category, device FK, lesson disruption and resolution timestamps. `school_history` stores private change metadata transactionally. None of these records join clinic reporting. Down migration deletes school data and is only for disposable tests.
+
+## Migration 7: scoped school identities
+
+`users.account_scope` defaults to CLINIC. SCHOOL users have no clinic department; a check constraint enforces both shapes. `account_version` protects school account updates. `school_tickets.requester_id` binds self-submitted requests to an account; legacy manual tickets remain unbound. `public_reply` is projected separately from private resolution. `school_account_events` stores private account/authentication events. Down migration refuses to proceed while school accounts exist.

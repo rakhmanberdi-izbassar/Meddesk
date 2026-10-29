@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/meddesk/meddesk/backend/internal/platform/response"
 )
@@ -51,6 +52,10 @@ func (g *Guard) Protect(next http.Handler, roles ...string) http.Handler {
 			} else {
 				response.Error(w, r, http.StatusInternalServerError, "internal_error", "Unable to authenticate request")
 			}
+			return
+		}
+		if session.User.AccountScope == AccountSchool && !strings.HasPrefix(r.URL.Path, "/api/v1/school/") && !(r.Method == http.MethodGet && r.URL.Path == "/api/v1/auth/me") && !(r.Method == http.MethodPost && r.URL.Path == "/api/v1/auth/logout") {
+			response.Error(w, r, http.StatusForbidden, "forbidden", "School accounts cannot access clinic resources")
 			return
 		}
 		if len(roles) > 0 {

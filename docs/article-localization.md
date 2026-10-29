@@ -8,6 +8,6 @@ Editors enter both versions in the existing article editor. Partial Russian tran
 
 ## Deployment
 
-Back up the database, then apply migration 000005 using the existing migration workflow. Deploy backend and frontend from this revision. This feature requires migration 5; current readiness also requires subsequent migrations (currently version 6). This migration preserves existing articles and does not invent translations: existing articles need Russian content entered through the editor. Existing content JSON files are Kazakh source material, not a translation import.
+Back up the database, then apply migration 000005 using the existing migration workflow. Deploy backend and frontend from this revision. This feature requires migration 5; current readiness also requires subsequent migrations (currently version 7). This migration preserves existing articles and does not invent translations: existing articles need Russian content entered through the editor. Existing content JSON files are Kazakh source material, not a translation import.
 
 Do not roll back migration 5 on production: its down migration deletes Russian translations. Test rollbacks only on disposable databases.

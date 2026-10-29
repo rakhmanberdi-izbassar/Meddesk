@@ -19,7 +19,7 @@ type Handler struct {
 
 func NewHandler(s *Service, g Guard) *Handler { return &Handler{s, g} }
 func (h *Handler) RegisterRoutes(m *http.ServeMux) {
-	for _, route := range []string{"GET /api/v1/school/access", "GET /api/v1/school/assets", "GET /api/v1/school/assets/{id}", "POST /api/v1/school/assets", "PATCH /api/v1/school/assets/{id}", "GET /api/v1/school/tickets", "POST /api/v1/school/tickets", "PATCH /api/v1/school/tickets/{id}"} {
+	for _, route := range []string{"GET /api/v1/school/access", "GET /api/v1/school/members", "POST /api/v1/school/members", "PATCH /api/v1/school/members/{id}", "GET /api/v1/school/requests", "POST /api/v1/school/requests", "GET /api/v1/school/requests/{id}", "GET /api/v1/school/assets", "GET /api/v1/school/assets/{id}", "POST /api/v1/school/assets", "PATCH /api/v1/school/assets/{id}", "GET /api/v1/school/tickets", "POST /api/v1/school/tickets", "PATCH /api/v1/school/tickets/{id}"} {
 		m.Handle(route, h.guard.Protect(http.HandlerFunc(h.serve)))
 	}
 }
@@ -30,6 +30,8 @@ func fail(w http.ResponseWriter, r *http.Request, err error) {
 		status, code = 403, "forbidden"
 	case errors.Is(err, ErrInvalid):
 		status, code = 400, "invalid_input"
+	case errors.Is(err, ErrDuplicate):
+		status, code = 409, "conflict"
 	case errors.Is(err, ErrConflict):
 		status, code = 409, "version_conflict"
 	case errors.Is(err, ErrNotFound):
@@ -55,7 +57,11 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request) {
 			fail(w, r, err)
 			return
 		}
-		response.JSON(w, 200, map[string]bool{"allowed": allowed})
+		response.JSON(w, 200, map[string]bool{"allowed": allowed, "owner": allowed && u.AccountScope != auth.AccountSchool})
+		return
+	}
+	if path == "/api/v1/school/members" || path == "/api/v1/school/requests" || r.Pattern == "PATCH /api/v1/school/members/{id}" || r.Pattern == "GET /api/v1/school/requests/{id}" {
+		h.accounts(w, r, u)
 		return
 	}
 	if r.Method == "GET" && r.PathValue("id") != "" {
@@ -130,6 +136,74 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request) {
 			out, err = h.service.UpdateTicket(ctx, u.ID, r.PathValue("id"), in)
 		}
 		if r.Method == "POST" {
+			status = 201
+		}
+	}
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	response.JSON(w, status, out)
+}
+
+func (h *Handler) accounts(w http.ResponseWriter, r *http.Request, u auth.User) {
+	var out any
+	var err error
+	status := 200
+	ctx := r.Context()
+	members := r.URL.Path == "/api/v1/school/members" || r.Pattern == "PATCH /api/v1/school/members/{id}"
+	if r.Method == "GET" {
+		if r.PathValue("id") != "" {
+			if len(r.URL.Query()) > 0 {
+				fail(w, r, ErrInvalid)
+				return
+			}
+			out, err = h.service.MyTicket(ctx, u.ID, r.PathValue("id"))
+		} else {
+			page, e := httpx.ParsePagination(r)
+			if e != nil {
+				httpx.WriteError(w, r, e)
+				return
+			}
+			for key := range r.URL.Query() {
+				if key != "limit" && key != "offset" {
+					fail(w, r, ErrInvalid)
+					return
+				}
+			}
+			if members {
+				out, err = h.service.Members(ctx, u.ID, page.Limit, page.Offset)
+			} else {
+				out, err = h.service.MyTickets(ctx, u.ID, page.Limit, page.Offset)
+			}
+		}
+	} else {
+		if len(r.URL.Query()) > 0 {
+			fail(w, r, ErrInvalid)
+			return
+		}
+		if r.Method == "PATCH" {
+			var in MemberUpdate
+			if e := httpx.Decode(w, r, &in); e != nil {
+				httpx.WriteError(w, r, e)
+				return
+			}
+			out, err = h.service.UpdateMember(ctx, u.ID, r.PathValue("id"), in)
+		} else if members {
+			var in MemberInput
+			if e := httpx.Decode(w, r, &in); e != nil {
+				httpx.WriteError(w, r, e)
+				return
+			}
+			out, err = h.service.CreateMember(ctx, u.ID, in)
+			status = 201
+		} else {
+			var in RequestInput
+			if e := httpx.Decode(w, r, &in); e != nil {
+				httpx.WriteError(w, r, e)
+				return
+			}
+			out, err = h.service.CreateRequest(ctx, u.ID, in)
 			status = 201
 		}
 	}

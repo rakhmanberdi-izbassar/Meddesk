@@ -191,7 +191,8 @@ func (s *Service) UpdateTicket(ctx context.Context, actor, id string, in UpdateI
 		return out, err
 	}
 	in.Resolution = strings.TrimSpace(in.Resolution)
-	if in.Version < 1 || !oneOf(in.Status, "NEW", "IN_PROGRESS", "WAITING_FOR_USER", "RESOLVED", "CLOSED") || !oneOf(in.Priority, "LOW", "MEDIUM", "HIGH", "CRITICAL") || !body(in.Resolution, 5000, true) {
+	in.PublicReply = strings.TrimSpace(in.PublicReply)
+	if in.Version < 1 || !oneOf(in.Status, "NEW", "IN_PROGRESS", "WAITING_FOR_USER", "RESOLVED", "CLOSED") || !oneOf(in.Priority, "LOW", "MEDIUM", "HIGH", "CRITICAL") || !body(in.PublicReply, 5000, true) || !body(in.Resolution, 5000, true) {
 		return out, ErrInvalid
 	}
 	err = s.repo.authorized(ctx, actor, func(q *db.Queries) error {
@@ -208,7 +209,7 @@ func (s *Service) UpdateTicket(ctx context.Context, actor, id string, in UpdateI
 		if current.Status == "CLOSED" || !transition(current.Status, in.Status) || oneOf(in.Status, "RESOLVED", "CLOSED") && in.Resolution == "" {
 			return ErrInvalid
 		}
-		out, err = q.SchoolUpdateTicket(ctx, db.SchoolUpdateTicketParams{ID: key, Status: in.Status, Priority: in.Priority, Resolution: in.Resolution, ExpectedVersion: in.Version})
+		out, err = q.SchoolUpdateTicket(ctx, db.SchoolUpdateTicketParams{ID: key, Status: in.Status, Priority: in.Priority, Resolution: in.Resolution, PublicReply: in.PublicReply, ExpectedVersion: in.Version})
 		if err != nil {
 			return err
 		}

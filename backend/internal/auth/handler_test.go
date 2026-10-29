@@ -205,3 +205,31 @@ func TestLoginRateLimitingByAccountAndPeer(t *testing.T) {
 		t.Fatal("untrusted spoofed forwarded address bypassed peer limit")
 	}
 }
+
+func TestSchoolScopeCannotUseClinicPrivilegesEvenWithAdminRole(t *testing.T) {
+	mux, _, repo := fixtureHandler(t)
+	repo.credential.User.AccountScope = AccountSchool
+	repo.credential.User.Role = RoleAdmin
+	cookies, csrf := loginHTTP(t, mux)
+	request := httptest.NewRequest("POST", "/api/v1/admin-action", strings.NewReader(`{}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", testOrigin)
+	request.Header.Set(CSRFHeader, csrf)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("school scope bypassed clinic boundary: %d", response.Code)
+	}
+	request = httptest.NewRequest("GET", "/api/v1/auth/me", nil)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"account_scope":"SCHOOL"`) {
+		t.Fatalf("school session introspection failed: %d", response.Code)
+	}
+}

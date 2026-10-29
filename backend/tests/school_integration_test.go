@@ -124,3 +124,22 @@ func TestSchoolOwnershipIsolationAndWorkflow(t *testing.T) {
 		t.Fatalf("revoked owner retained access: %v", err)
 	}
 }
+
+func TestSchoolAccountAuditRollback(t *testing.T) {
+	ctx, tx := databaseTransaction(t)
+	owner := createFixture(t, ctx, tx)
+	if _, err := tx.Exec(ctx, `INSERT INTO school_workspace(owner_id) VALUES($1)`, owner.user); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `CREATE FUNCTION pg_temp.reject_member_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test audit unavailable'; END $$; CREATE TRIGGER reject_member_audit BEFORE INSERT ON school_account_events FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_member_audit()`); err != nil {
+		t.Fatal(err)
+	}
+	service := school.NewService(school.NewRepository(tx))
+	if _, err := service.CreateMember(ctx, owner.user, school.MemberInput{Email: "rollback-" + owner.email, DisplayName: "Teacher", Password: "synthetic-password-2026"}); err == nil {
+		t.Fatal("audit failure accepted")
+	}
+	members, err := service.Members(ctx, owner.user, 20, 0)
+	if err != nil || members.Total != 0 {
+		t.Fatalf("partial account creation: %+v %v", members, err)
+	}
+}

@@ -12,6 +12,7 @@ const (
 	RoleEmployee  = "EMPLOYEE"
 	RoleEngineer  = "IT_ENGINEER"
 	RoleAdmin     = "ADMIN"
+	AccountSchool = "SCHOOL"
 	SessionCookie = "meddesk_session"
 	CSRFCookie    = "meddesk_csrf"
 	CSRFHeader    = "X-CSRF-Token"
@@ -33,6 +34,7 @@ type User struct {
 	DepartmentID   string `json:"department_id"`
 	DepartmentName string `json:"department_name"`
 	IsActive       bool   `json:"is_active"`
+	AccountScope   string `json:"account_scope,omitempty"`
 }
 
 type Credential struct {

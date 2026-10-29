@@ -86,5 +86,5 @@ SELECT id, name_kk, name_ru FROM knowledge_categories ORDER BY name_kk, id;
 
 -- name: AnalyticsFilterAssignees :many
 SELECT DISTINCT u.id, u.display_name FROM users u JOIN roles r ON r.id = u.role_id
-WHERE r.code IN ('IT_ENGINEER','ADMIN') OR EXISTS (SELECT 1 FROM tickets t WHERE t.assignee_id = u.id)
+WHERE u.account_scope='CLINIC' AND (r.code IN ('IT_ENGINEER','ADMIN') OR EXISTS (SELECT 1 FROM tickets t WHERE t.assignee_id = u.id))
 ORDER BY u.display_name, u.id;

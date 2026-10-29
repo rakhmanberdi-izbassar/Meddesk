@@ -9,13 +9,18 @@ const now = '2026-10-29T08:00:00Z'
 const ticket = { id: '00000000-0000-4000-8000-000000000001', number: 1, title: 'Камера көрсетпейді', description: 'Дәліздегі камера', requester: 'Мұғалім', room: 'Дәліз', category: 'SURVEILLANCE', priority: 'HIGH', status: 'NEW', lesson_blocked: true, asset_id: null, resolution: '', version: 1, created_at: now, updated_at: now, resolved_at: null }
 const reply = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } })
 const device = { id: '00000000-0000-4000-8000-000000000002', name: 'Камера 101', kind: 'CAMERA', location: '101', model: '', inventory_number: 'CAM-101', ip_address: '192.168.1.10', notes: '', version: 1, created_at: now, updated_at: now }
+let schoolEmployee = false
 let withDevices = false
 let allowed = true
 beforeEach(() => {
- allowed = true; withDevices = false
+ allowed = true; withDevices = false; schoolEmployee = false
  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
   const path = String(url)
-  if (path === '/api/v1/auth/me') return reply({ user: { id: 'owner-id', email: 'owner@example.test', display_name: 'Owner', role: 'ADMIN', department_id: 'dept', department_name: 'IT', is_active: true }, csrf_token: 'synthetic-csrf-token-12345' })
+  if (path === '/api/v1/auth/me') return reply({ user: { id: 'owner-id', email: 'owner@example.test', display_name: 'Owner', role: schoolEmployee ? 'EMPLOYEE' : 'ADMIN', account_scope: schoolEmployee ? 'SCHOOL' : 'CLINIC', department_id: 'dept', department_name: 'IT', is_active: true }, csrf_token: 'synthetic-csrf-token-12345' })
+  if (path.startsWith('/api/v1/school/requests?')) return reply({ items: [{ ...ticket, public_reply: 'Жөнделді' }], total: 1, limit: 20, offset: 0 })
+  if (path === '/api/v1/school/requests' && init?.method === 'POST') return reply({ ...ticket, ...JSON.parse(String(init.body)), public_reply: '' }, 201)
+  if (path.startsWith('/api/v1/school/members?')) return reply({ items: [], total: 0, limit: 20, offset: 0 })
+  if (path === '/api/v1/school/members' && init?.method === 'POST') return reply({ id: 'member-id', ...JSON.parse(String(init.body)), is_active: true, version: 1 }, 201)
   if (path === '/api/v1/school/access') return reply({ allowed })
   if (path.startsWith('/api/v1/school/tickets?')) return reply({ items: [ticket], total: 1, limit: 20, offset: 0 })
   if (path === `/api/v1/school/assets/${device.id}`) return reply(device)
@@ -24,7 +29,7 @@ beforeEach(() => {
   return reply({ error: { code: 'not_found' } }, 404)
  }))
 })
-function page() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })}><LocaleProvider><MemoryRouter initialEntries={['/school']}><App /></MemoryRouter></LocaleProvider></QueryClientProvider>) }
+function page(path = '/school') { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })}><LocaleProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></LocaleProvider></QueryClientProvider>) }
 it('denies a clinic administrator without explicit school ownership', async () => {
  allowed = false;page()
  await screen.findByText('Мектеп кеңістігі тек оның иесіне қолжетімді.')
@@ -70,4 +75,40 @@ it('links a device selected by its human-readable name', async () => {
  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url,init]) => url === '/api/v1/school/tickets' && init?.method === 'POST')).toBe(true))
  const [,init] = vi.mocked(fetch).mock.calls.find(([,init]) => init?.method === 'POST')!
  expect(JSON.parse(String(init?.body))).toMatchObject({ asset_id: device.id })
+})
+
+it('routes a school employee away from clinic pages without fetching clinic resources', async () => {
+ schoolEmployee = true;page('/knowledge')
+ await screen.findByRole('heading', { name: 'Мектеп · менің өтінімдерім' })
+ expect(await screen.findByText('Жөнделді')).toBeInTheDocument()
+ expect(screen.queryByRole('button', { name: 'Қызметкерлер' })).not.toBeInTheDocument()
+ expect(screen.queryByRole('button', { name: 'Құрылғылар' })).not.toBeInTheDocument()
+ expect(screen.queryByRole('link', { name: 'Емхана кеңістігіне оралу' })).not.toBeInTheDocument()
+ expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).startsWith('/api/v1/knowledge') || url === '/api/v1/settings' || String(url).startsWith('/api/v1/school/assets'))).toBe(false)
+})
+it('lets a school employee submit an identity-bound request without requester or device fields', async () => {
+ schoolEmployee = true;page()
+ await screen.findByRole('heading', { name: 'Мектеп · менің өтінімдерім' })
+ await userEvent.click(screen.getByRole('button', { name: 'Өтінім жіберу' }))
+ await userEvent.type(screen.getByRole('textbox', { name: 'Мәселе' }), 'Интернет жоқ')
+ await userEvent.type(screen.getByRole('textbox', { name: 'Сипаттамасы' }), '101 кабинетте байланыс жоқ')
+ await userEvent.type(screen.getByRole('textbox', { name: 'Кабинет / орын' }), '101')
+ expect(screen.queryByRole('textbox', { name: 'Хабарлаған қызметкер' })).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button', { name: 'Жіберу' }))
+ await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url,init]) => url === '/api/v1/school/requests' && init?.method === 'POST')).toBe(true))
+ const [,init] = vi.mocked(fetch).mock.calls.find(([url,init]) => url === '/api/v1/school/requests' && init?.method === 'POST')!
+ const data = JSON.parse(String(init?.body))
+ expect(data).toMatchObject({ title: 'Интернет жоқ', room: '101' })
+ expect(data).not.toHaveProperty('requester_id');expect(data).not.toHaveProperty('asset_id')
+})
+it('lets the owner create a school account with the private members endpoint', async () => {
+ page();await screen.findByText(/SCH-1/)
+ await userEvent.click(screen.getByRole('button', { name: 'Қызметкерлер' }))
+ await userEvent.click(await screen.findByRole('button', { name: 'Қызметкер қосу' }))
+ await userEvent.type(screen.getByRole('textbox', { name: 'Аты-жөні' }), 'Тест мұғалім')
+ await userEvent.type(screen.getByRole('textbox', { name: 'Email' }), 'teacher@example.test')
+ await userEvent.type(screen.getByLabelText('Құпиясөз', { exact: true }), 'Synthetic-password-2026')
+ await userEvent.click(screen.getByRole('button', { name: 'Сақтау' }))
+ await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url,init]) => url === '/api/v1/school/members' && init?.method === 'POST')).toBe(true))
+ expect(vi.mocked(fetch).mock.calls.some(([url,init]) => url === '/api/v1/users' && init?.method === 'POST')).toBe(false)
 })
